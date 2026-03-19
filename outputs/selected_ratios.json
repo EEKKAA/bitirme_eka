@@ -1,0 +1,105 @@
+{
+  "model": "CatBoost",
+  "feature_ranking": [
+    {
+      "rank": 1,
+      "feature": "cfo_x_interest",
+      "mean_abs_shap": 1.0164315121118574
+    },
+    {
+      "rank": 2,
+      "feature": "equity_to_long_term_liabilities",
+      "mean_abs_shap": 0.7763347755249067
+    },
+    {
+      "rank": 3,
+      "feature": "gp_ltl_x_inflation",
+      "mean_abs_shap": 0.6309964697772912
+    },
+    {
+      "rank": 4,
+      "feature": "asset_turnover",
+      "mean_abs_shap": 0.6170137691519729
+    },
+    {
+      "rank": 5,
+      "feature": "equity_to_short_term_liabilities",
+      "mean_abs_shap": 0.6156325614468691
+    },
+    {
+      "rank": 6,
+      "feature": "short_term_liabilities_to_assets_trend_1yr",
+      "mean_abs_shap": 0.5930889143632572
+    },
+    {
+      "rank": 7,
+      "feature": "fixed_assets_to_total_liabilities",
+      "mean_abs_shap": 0.5798249306785925
+    },
+    {
+      "rank": 8,
+      "feature": "gross_profit_to_long_term_liabilities_trend_1yr",
+      "mean_abs_shap": 0.5126882527314988
+    },
+    {
+      "rank": 9,
+      "feature": "quick_ratio",
+      "mean_abs_shap": 0.4830156507766711
+    },
+    {
+      "rank": 10,
+      "feature": "quick_x_unemployment",
+      "mean_abs_shap": 0.3800100265180351
+    },
+    {
+      "rank": 11,
+      "feature": "gross_profit_to_long_term_liabilities",
+      "mean_abs_shap": 0.3172373676333437
+    },
+    {
+      "rank": 12,
+      "feature": "operating_income_to_assets",
+      "mean_abs_shap": 0.3102853340591762
+    },
+    {
+      "rank": 13,
+      "feature": "ebit_to_current_liabilities",
+      "mean_abs_shap": 0.2495584675608485
+    },
+    {
+      "rank": 14,
+      "feature": "net_operating_profit_margin",
+      "mean_abs_shap": 0.2454737794253886
+    },
+    {
+      "rank": 15,
+      "feature": "industrial_prod_growth",
+      "mean_abs_shap": 0.23649032186626093
+    },
+    {
+      "rank": 16,
+      "feature": "oi_ta_x_unemployment",
+      "mean_abs_shap": 0.22133916931943123
+    },
+    {
+      "rank": 17,
+      "feature": "fixed_assets_x_interest",
+      "mean_abs_shap": 0.1685611915698901
+    },
+    {
+      "rank": 18,
+      "feature": "equity_stl_x_interest",
+      "mean_abs_shap": 0.1667756961476548
+    },
+    {
+      "rank": 19,
+      "feature": "margin_x_usdtry",
+      "mean_abs_shap": 0.1523100483222455
+    },
+    {
+      "rank": 20,
+      "feature": "gdp_growth",
+      "mean_abs_shap": 0.14089477650687549
+    }
+  ]
+}

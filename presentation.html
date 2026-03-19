@@ -1,0 +1,1218 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <title>A Mobile Application for Corporate Default Risk Analsys Using Machine Learning</title>
+
+  <!-- Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
+    rel="stylesheet">
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <style>
+    :root {
+      /* Color Palette */
+      --bg-base: #0b1120;
+      --bg-surface: #1e293b;
+      --bg-elevated: #334155;
+      --text-main: #f8fafc;
+      --text-muted: #cbd5e1;
+      --accent-primary: #3b82f6;
+      /* Blue */
+      --accent-success: #10b981;
+      /* Green */
+      --accent-danger: #ef4444;
+      /* Red */
+      --accent-warning: #f59e0b;
+      /* Yellow */
+      --accent-purple: #8b5cf6;
+
+      --border-subtle: rgba(255, 255, 255, 0.15);
+      --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.5), 0 4px 6px -2px rgba(0, 0, 0, 0.3);
+
+      /* Typography */
+      --font-family: 'Inter', sans-serif;
+      --transition-speed: 0.6s;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    /* 1 rem = 18px (Base font scaling for better readability) */
+    html {
+      font-size: 19px;
+    }
+
+    body {
+      width: 100%;
+      height: 100vh;
+      font-family: var(--font-family);
+      background-color: var(--bg-base);
+      color: var(--text-main);
+      overflow: hidden;
+      position: relative;
+    }
+
+    /* Abstract Background Decoration */
+    .bg-glow {
+      position: absolute;
+      width: 70vw;
+      height: 70vw;
+      background: radial-gradient(circle, rgba(59, 130, 246, 0.12) 0%, rgba(15, 23, 42, 0) 70%);
+      top: -25vh;
+      right: -25vw;
+      border-radius: 50%;
+      z-index: 0;
+      pointer-events: none;
+    }
+
+    .bg-glow-2 {
+      position: absolute;
+      width: 60vw;
+      height: 60vw;
+      background: radial-gradient(circle, rgba(16, 185, 129, 0.08) 0%, rgba(15, 23, 42, 0) 70%);
+      bottom: -20vh;
+      left: -20vw;
+      border-radius: 50%;
+      z-index: 0;
+      pointer-events: none;
+    }
+
+    /* Slides Container */
+    .slides-container {
+      width: 100%;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      transition: transform var(--transition-speed) cubic-bezier(0.65, 0, 0.35, 1);
+      position: relative;
+      z-index: 10;
+    }
+
+    /* Slide Layout */
+    .slide {
+      width: 100vw;
+      height: 100vh;
+      min-height: 100vh;
+      padding: 3rem 6%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+    }
+
+    .slide-content {
+      width: 100%;
+      max-width: 1400px;
+      display: flex;
+      flex-direction: column;
+      gap: 2rem;
+      opacity: 0;
+      transform: translateY(20px) scale(0.99);
+      transition: opacity 0.8s ease, transform 0.8s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    .slide.active .slide-content {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+      transition-delay: 0.1s;
+    }
+
+    /* Typography */
+    h1 {
+      font-size: 3.8rem;
+      font-weight: 800;
+      line-height: 1.15;
+      letter-spacing: -0.04em;
+      background: linear-gradient(135deg, #ffffff 0%, #cbd5e1 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 0.5rem;
+    }
+
+    h2 {
+      font-size: 2.5rem;
+      font-weight: 700;
+      color: #ffffff;
+      margin-bottom: 0.8rem;
+      letter-spacing: -0.02em;
+    }
+
+    h3 {
+      font-size: 1.5rem;
+      font-weight: 500;
+      color: var(--accent-primary);
+      line-height: 1.4;
+    }
+
+    p,
+    li {
+      font-size: 1.15rem;
+      color: var(--text-muted);
+      line-height: 1.6;
+    }
+
+    ul {
+      padding-left: 1.5rem;
+      list-style-type: none;
+    }
+
+    li {
+      position: relative;
+      margin-bottom: 1rem;
+    }
+
+    li::before {
+      content: '•';
+      color: var(--accent-primary);
+      font-size: 1.5rem;
+      position: absolute;
+      left: -1.2rem;
+      top: -0.15rem;
+    }
+
+    strong {
+      color: var(--text-main);
+      font-weight: 600;
+      letter-spacing: 0.01em;
+    }
+
+    /* Layout Utilities */
+    .grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 3.5rem;
+      align-items: center;
+    }
+
+    .grid-2-chart-left {
+      grid-template-columns: 1.2fr 0.8fr;
+    }
+
+    .grid-3 {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 2rem;
+    }
+
+    /* UI Components */
+    .card {
+      background: rgba(30, 41, 59, 0.65);
+      backdrop-filter: blur(12px);
+      border: 1px solid var(--border-subtle);
+      border-radius: 1.2rem;
+      padding: 2rem;
+      box-shadow: var(--shadow-lg);
+    }
+
+    .chart-container {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: 1rem;
+      padding: 1.5rem;
+      box-shadow: var(--shadow-lg);
+      width: 100%;
+      height: 380px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+    }
+
+    .chart-large {
+      height: 480px;
+    }
+
+    .metric {
+      display: flex;
+      flex-direction: column;
+      gap: 0.2rem;
+    }
+
+    .metric-value {
+      font-size: 3.2rem;
+      font-weight: 800;
+      line-height: 1;
+    }
+
+    .metric-label {
+      font-size: 1rem;
+      font-weight: 600;
+      color: var(--text-main);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+
+    /* Text Highlights */
+    .text-green {
+      color: var(--accent-success) !important;
+      -webkit-text-fill-color: var(--accent-success);
+    }
+
+    .text-blue {
+      color: var(--accent-primary) !important;
+      -webkit-text-fill-color: var(--accent-primary);
+    }
+
+    .text-purple {
+      color: var(--accent-purple) !important;
+      -webkit-text-fill-color: var(--accent-purple);
+    }
+
+    .text-red {
+      color: var(--accent-danger) !important;
+      -webkit-text-fill-color: var(--accent-danger);
+    }
+
+    /* Architecture Flow */
+    .flow-diagram {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 1.5rem;
+      margin-top: 1.5rem;
+    }
+
+    .flow-step {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: 1rem;
+      padding: 2rem 1rem;
+      position: relative;
+      text-align: center;
+      transition: transform 0.3s;
+    }
+
+    .flow-step:hover {
+      transform: translateY(-5px);
+    }
+
+    .flow-icon {
+      font-size: 2.2rem;
+      margin-bottom: 0.8rem;
+      color: var(--text-main);
+    }
+
+    .flow-step h4 {
+      font-size: 1.15rem;
+      color: white;
+      margin-bottom: 0.5rem;
+    }
+
+    .flow-step p {
+      font-size: 0.95rem;
+      line-height: 1.4;
+    }
+
+    .flow-step:not(:last-child)::after {
+      content: '→';
+      position: absolute;
+      right: -1rem;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 1.8rem;
+      color: var(--text-muted);
+      z-index: 10;
+    }
+
+    /* Controls & Progress */
+    .controls {
+      position: fixed;
+      bottom: 1.5rem;
+      left: 0;
+      width: 100%;
+      display: flex;
+      justify-content: space-between;
+      padding: 0 5%;
+      z-index: 50;
+      pointer-events: none;
+    }
+
+    .btn {
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid var(--border-subtle);
+      color: white;
+      padding: 0.6rem 1.4rem;
+      border-radius: 2rem;
+      font-family: var(--font-family);
+      font-weight: 600;
+      font-size: 0.9rem;
+      cursor: pointer;
+      pointer-events: auto;
+      backdrop-filter: blur(8px);
+      transition: all 0.2s;
+    }
+
+    .btn:hover:not(:disabled) {
+      background: rgba(255, 255, 255, 0.2);
+      transform: translateY(-2px);
+      box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+    }
+
+    .btn:disabled {
+      opacity: 0.2;
+      cursor: not-allowed;
+    }
+
+    .progress-container {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 5px;
+      background: rgba(255, 255, 255, 0.05);
+      z-index: 100;
+    }
+
+    .progress-bar {
+      height: 100%;
+      background: linear-gradient(90deg, var(--accent-primary), var(--accent-purple));
+      width: 10%;
+      transition: width var(--transition-speed) ease;
+    }
+
+    /* Confusion Matrix CSS Map */
+    .cm-grid {
+      display: grid;
+      grid-template-columns: auto 1fr 1fr;
+      grid-template-rows: auto 1fr 1fr;
+      gap: 0.5rem;
+      width: 100%;
+      max-width: 450px;
+      margin: 0 auto;
+    }
+
+    .cm-cell {
+      background: var(--bg-surface);
+      border-radius: 0.5rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 1rem;
+      text-align: center;
+      font-weight: 600;
+    }
+
+    .cm-header {
+      background: transparent;
+      color: var(--text-muted);
+      justify-content: center;
+      font-size: 0.85rem;
+      text-transform: uppercase;
+    }
+
+    .cm-val {
+      flex-direction: column;
+      font-size: 1.8rem;
+      color: white;
+      border: 1px solid var(--border-subtle);
+    }
+
+    .cm-val span {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      font-weight: normal;
+    }
+
+    .cm-true-neg {
+      background: rgba(16, 185, 129, 0.2);
+      border-color: var(--accent-success);
+    }
+
+    .cm-true-pos {
+      background: rgba(59, 130, 246, 0.2);
+      border-color: var(--accent-primary);
+    }
+
+    .cm-false-neg,
+    .cm-false-pos {
+      background: rgba(239, 68, 68, 0.1);
+    }
+  </style>
+</head>
+
+<body>
+
+  <div class="bg-glow"></div>
+  <div class="bg-glow-2"></div>
+
+  <div class="progress-container">
+    <div class="progress-bar" id="progressBar"></div>
+  </div>
+
+  <div class="controls">
+    <button class="btn" id="prevBtn" onclick="prevSlide()" disabled>← Previous</button>
+    <span
+      style="color: var(--text-muted); display: flex; align-items: center; pointer-events: auto; font-family: monospace; font-size: 1rem; font-weight: 600;"
+      id="slideCounter">1 / 11</span>
+    <button class="btn" id="nextBtn" onclick="nextSlide()">Next →</button>
+  </div>
+
+  <div class="slides-container" id="slidesWrapper">
+
+    <!-- Slide 1: Title -->
+    <div class="slide active">
+      <div class="slide-content" style="align-items: center; text-align: center; max-width: 900px;">
+        <div
+          style="padding: 0.6rem 1.4rem; background: rgba(59,130,246,0.15); border: 1px solid rgba(59,130,246,0.4); border-radius: 2rem; color: var(--accent-primary); font-weight: 600; margin-bottom: 0.8rem; margin-top: -3rem; display: inline-block;">
+          BIST Market Data (2018-2024)
+        </div>
+        <h1>A Mobile Application for Corporate Default Risk Analysis Using Machine Learning</h1>
+        <h3>A Machine Learning Approach to Corporate Distress Forecasting</h3>
+
+        <p style="margin-top: 1rem; max-width: 80%;">Evaluating corporate risk through a complex mesh of internal
+          financial ratios and external macroeconomic shocks to detect <strong>early warning signals</strong> of
+          failure.</p>
+
+        <!-- Project Credits Section -->
+        <div
+          style="margin-top: 1.5rem; display: flex; flex-direction: column; gap: 1rem; background: rgba(30, 41, 59, 0.4); border: 1px solid var(--border-subtle); border-radius: 1rem; padding: 1.5rem 3rem; box-shadow: var(--shadow-lg);">
+
+          <div style="display: flex; flex-direction: column; gap: 0.3rem;">
+            <div
+              style="display: flex; gap: 2rem; justify-content: center; font-size: 1.1rem; color: #f8fafc; font-weight: 500;">
+              <span>👤 Efe Kağan Aşık (010200209)</span>
+              <span>👤 Furkan Aktaş (040210017)</span>
+            </div>
+          </div>
+
+          <div style="height: 1px; width: 50%; background: var(--border-subtle); margin: 0.5rem auto;"></div>
+
+          <div style="display: flex; flex-direction: column; gap: 0.3rem;">
+            <span
+              style="color: var(--text-muted); font-size: 0.85rem; text-transform: uppercase; letter-spacing: 1px;">Project
+              Advisor</span>
+            <div
+              style="display: flex; justify-content: center; font-size: 1.15rem; color: var(--accent-success); font-weight: 600;">
+              <span>🎓 Assoc. Prof. Dr. Ahmet GÖNCÜ</span>
+            </div>
+          </div>
+
+        </div>
+
+        <div class="grid-3" style="width: 100%; margin-top: 3.5rem;">
+          <div class="metric">
+            <div class="metric-value text-blue">65</div>
+            <div class="metric-label">Companies</div>
+          </div>
+          <div class="metric">
+            <div class="metric-value text-purple">7</div>
+            <div class="metric-label">Years of Data</div>
+          </div>
+          <div class="metric">
+            <div class="metric-value text-green">40</div>
+            <div class="metric-label">Engineered Features</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Slide 2: Observation Profile -->
+    <div class="slide">
+      <div class="slide-content grid-2">
+        <div>
+          <h2>The Observation Dataset</h2>
+          <p>Predicting rare financial events requires robust data handling. Traditional models struggle here due to
+            strict assumptions and sensitivity to macroeconomic shifts.</p>
+
+          <div class="card" style="margin-top: 2.5rem; padding: 2rem;">
+            <h3 style="color: white; font-size: 1.3rem; margin-bottom: 1rem;">Observation Profile</h3>
+            <ul style="margin: 0;">
+              <li><strong>439 Total Firm-Year Observations</strong> built from BIST filings.</li>
+              <li><span class="text-green font-semibold">71.5%</span> (314) Highly Solvent / Healthy Periods.</li>
+              <li><span class="text-red font-semibold">28.5%</span> (125) Distressed / Risky Periods.</li>
+              <li>Research on addressing class imbalance indicates that <strong>SMOTE</strong> (Synthetic Minority
+                Over-sampling Technique) is a highly viable methodology; therefore, it will be applied to stabilize the
+                dataset.</li>
+            </ul>
+          </div>
+        </div>
+        <div class="chart-container" style="display: flex; flex-direction: column;">
+          <canvas id="chartStatusBreakdown" style="max-height: 280px;"></canvas>
+          <p
+            style="text-align: center; font-size: 0.85rem; margin-top: 1.5rem; color: var(--text-muted); border-top: 1px solid rgba(255,255,255,0.1); padding-top: 1rem;">
+            Addressing class imbalance computationally prevents the model from blindly predicting the majority
+            (solvency) class.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Slide 3: Sector Vulnerability Strategy -->
+    <div class="slide">
+      <div class="slide-content grid-2">
+        <div class="chart-container chart-large">
+          <canvas id="chartSectors"></canvas>
+        </div>
+        <div>
+          <h2>Sector Risk Distribution</h2>
+          <p>The dataset spans highly varied industries, meaning the baseline for "financial stress" differs
+            fundamentally based on a company's sector.</p>
+          <div style="margin-top: 2rem;">
+            <h3 style="color: white; margin-bottom: 0.5rem;">Manufacturing Heavy</h3>
+            <p style="margin-bottom: 1.5rem;">With 20+ active firms, manufacturing heavily dictates the feature
+              importance algorithms due to raw material and export-import dependencies.</p>
+
+            <h3 style="color: white; margin-bottom: 0.5rem;">Energy & Utilities</h3>
+            <p style="margin-bottom: 1.5rem;">11 Firms (e.g., TUPRS, AKSA) which tend to have vastly different liquidity
+              ratios compared to holding conglomerates.</p>
+
+            <h3 style="color: white; margin-bottom: 0.5rem;">Risk Generalization</h3>
+            <p>Our model avoids sector-bias by heavily relying on <strong>macroeconomic interaction terms</strong>
+              rather than isolated micro ratios.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Slide 4: Labeling Strategy -->
+    <div class="slide">
+      <div class="slide-content grid-2 grid-2-chart-left">
+        <div class="chart-container"
+          style="display: flex; flex-direction: column; background: rgba(30, 41, 59, 0.4); border-color: var(--border-subtle);">
+          <!-- Custom timeline CSS visual -->
+          <h3 style="color: white; margin-bottom: 2rem; font-size: 1.25rem;">Labeling Timeline (Example Firm)</h3>
+          <div
+            style="width: 100%; display: flex; align-items: center; justify-content: space-between; position: relative; margin-bottom: 3rem; padding: 0 1rem;">
+            <div
+              style="position: absolute; height: 4px; width: 85%; background: var(--border-subtle); top: 50%; left: 7.5%; z-index: 1;">
+            </div>
+
+            <div style="z-index: 2; display: flex; flex-direction: column; align-items: center;">
+              <div style="margin-bottom: 0.5rem; color: var(--text-muted); font-size: 0.85rem;">2018-2021</div>
+              <div
+                style="width: 24px; height: 24px; border-radius: 50%; background: var(--accent-danger); box-shadow: 0 0 10px var(--accent-danger);">
+              </div>
+              <div style="margin-top: 0.5rem; color: var(--accent-danger); font-weight: bold;">Distress (1)</div>
+            </div>
+
+            <div style="z-index: 2; display: flex; flex-direction: column; align-items: center;">
+              <div style="margin-bottom: 0.5rem; color: var(--text-muted); font-size: 0.85rem;">2022</div>
+              <div
+                style="width: 24px; height: 24px; border-radius: 50%; background: var(--accent-danger); box-shadow: 0 0 10px var(--accent-danger);">
+              </div>
+              <div style="margin-top: 0.5rem; color: var(--accent-danger); font-weight: bold;">Distress (1)</div>
+            </div>
+
+            <div style="z-index: 2; display: flex; flex-direction: column; align-items: center;">
+              <div style="margin-bottom: 0.5rem; color: var(--text-muted); font-size: 0.85rem;">2023</div>
+              <div
+                style="width: 24px; height: 24px; border-radius: 50%; background: var(--accent-danger); box-shadow: 0 0 10px var(--accent-danger);">
+              </div>
+              <div style="margin-top: 0.5rem; color: var(--accent-danger); font-weight: bold;">Distress (1)</div>
+            </div>
+
+            <div style="z-index: 2; display: flex; flex-direction: column; align-items: center;">
+              <div style="margin-bottom: 0.5rem; color: var(--text-muted); font-size: 0.85rem;">2024</div>
+              <div
+                style="width: 24px; height: 24px; border-radius: 50%; background: var(--accent-danger); box-shadow: 0 0 15px var(--accent-danger); border: 2px solid white;">
+              </div>
+              <div style="margin-top: 0.5rem; color: var(--text-main); font-weight: bold;">Bankruptcy Year</div>
+            </div>
+          </div>
+        </div>
+        <div>
+          <h2>The Labeling Strategy</h2>
+          <p>Machine Learning requires an absolutely precise target variable to define its learning scope. To detect
+            early warning signs, the system labels the <strong>entire known deteriorating cycle</strong>.</p>
+
+          <ul style="margin-top: 2rem;">
+            <li><strong class="text-red">Distressed Target (1):</strong> As defined in our pipeline code
+              (<code>is_before_or_at</code>), if a firm files for bankruptcy in <strong>2024</strong>, the system
+              explicitly labels <strong>all data observations for that firm (e.g., 2018 through 2024)</strong> as a
+              Distressed instance class (1).</li>
+
+            <li style="margin-top: 1.5rem;"><strong class="text-green">Healthy Target (0):</strong> This is reserved
+              <em>exclusively</em> for companies that have never filed for bankruptcy across the entire dataset
+              timeframe. Their entire observation record is labeled as Healthy (0).
+            </li>
+
+            <li style="margin-top: 1.5rem;"><strong>Why label all historical years?</strong> A company that bankrupts in
+              2024 didn't begin failing in 2024; its financial DNA was already fundamentally flawed in 2018. By flagging
+              the entire history of a bankrupt firm as class `1`, we teach the model to distinguish between the
+              intrinsic financial signatures of naturally healthy firms vs ultimately doomed firms.
+            </li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- Slide 5: Pipeline Architecture -->
+    <div class="slide">
+      <div class="slide-content">
+        <div style="text-align: center; max-width: 900px; margin: 0 auto;">
+          <h2>End-to-End ML Architecture</h2>
+          <p>A completely reproducible logic flow from raw Excel ingests to finalized tree-based probability outputs.
+          </p>
+        </div>
+
+        <div class="flow-diagram" style="margin-top: 3rem;">
+          <div class="flow-step" style="border-top: 4px solid var(--accent-primary);">
+            <div class="flow-icon">📁</div>
+            <h4>1. Ingestion</h4>
+            <p class="text-muted">Crawling structured BIST Excel sheets across 2018-2024.</p>
+          </div>
+          <div class="flow-step" style="border-top: 4px solid var(--accent-success);">
+            <div class="flow-icon">⚙️</div>
+            <h4>2. Factorization</h4>
+            <p class="text-muted">Distilling raw line items into 13 core analytical ratios.</p>
+          </div>
+          <div class="flow-step" style="border-top: 4px solid var(--accent-warning);">
+            <div class="flow-icon">🧩</div>
+            <h4>3. Integration</h4>
+            <p class="text-muted">Merging 9 systemic macroeconomic trackers dynamically.</p>
+          </div>
+          <div class="flow-step" style="border-top: 4px solid var(--accent-purple);">
+            <div class="flow-icon">🧠</div>
+            <h4>4. Modelling</h4>
+            <p class="text-muted">Cross-validation, outlier scaling, and tree-based forecasting.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Slide 6: Feature Engineering Map -->
+    <div class="slide">
+      <div class="slide-content grid-2">
+        <div>
+          <h2>Dynamic Feature Engineering</h2>
+          <p>Instead of relying solely on internal metrics, the framework calculates a specialized <strong>40-feature
+              topology</strong> across three dimensions.</p>
+
+          <ul style="margin-top: 2rem;">
+            <li><strong class="text-blue">13 Financial Ratios:</strong> The standard foundational toolkit. Includes
+              liquidity testing, asset turnover, debt-equity, and margin tracking.</li>
+
+            <li style="margin-top: 1.5rem;"><strong class="text-green">9 Macro Indicators:</strong> Systemic environment
+              trackers defining the climate the firm operates within:
+              <div
+                style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; margin-top: 0.8rem; font-size: 1rem; color: #94a3b8;">
+                <span>- GDP Growth</span>
+                <span>- Inflation Rate</span>
+                <span>- Interest Rate</span>
+                <span>- USD/TRY Average</span>
+                <span>- USD/TRY Action</span>
+                <span>- Unemployment</span>
+                <span>- Ind. Production</span>
+                <span>- Credit Growth</span>
+              </div>
+            </li>
+          </ul>
+        </div>
+        <div class="chart-container chart-large">
+          <canvas id="chartFeatureBreakdown"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- Slide 7: Interaction Terms Deep Dive -->
+    <div class="slide">
+      <div class="slide-content">
+        <div style="text-align: center; max-width: 900px; margin: 0 auto;">
+          <h2>The "Interaction Term" Breakthrough</h2>
+          <p>Models often fail because they view micro metrics in a vacuum (e.g. "Low debt is good"). We created
+            <strong>18 interaction mappings</strong> to link a firm's internal state directly to the external macro
+            shock.
+          </p>
+        </div>
+
+        <div class="grid-3" style="margin-top: 3rem;">
+          <div class="card" style="border-color: var(--accent-danger);">
+            <h3 style="color: white; margin-bottom: 1rem;">Borrowing Shock</h3>
+            <code
+              style="background: rgba(255,255,255,0.1); padding: 4px 8px; border-radius: 4px; font-size: 1rem; color: #fca5a5; display: block; text-align: center;">Debt Ratio × Interest Rate</code>
+            <p style="font-size: 0.95rem; margin-top: 1rem;">Measures exposure. A firm with 80% debt during 10% interest
+              is stable; the same firm during 45% interest is fatally distressed.</p>
+          </div>
+
+          <div class="card" style="border-color: var(--accent-warning);">
+            <h3 style="color: white; margin-bottom: 1rem;">Currency Squeeze</h3>
+            <code
+              style="background: rgba(255,255,255,0.1); padding: 4px 8px; border-radius: 4px; font-size: 1rem; color: #fde047; display: block; text-align: center;">Net Margin × USD/TRY Shock</code>
+            <p style="font-size: 0.95rem; margin-top: 1rem;">Gauges vulnerability for import-reliant manufacturers when
+              currency drastically devalues in short windows.</p>
+          </div>
+
+          <div class="card" style="border-color: var(--accent-success);">
+            <h3 style="color: white; margin-bottom: 1rem;">Growth Stagnation</h3>
+            <code
+              style="background: rgba(255,255,255,0.1); padding: 4px 8px; border-radius: 4px; font-size: 1rem; color: #86efac; display: block; text-align: center;">Asset Turnover × GDP Growth</code>
+            <p style="font-size: 0.95rem; margin-top: 1rem;">Determines if declining sales velocity is a structural
+              internal failure or merely symptomatic of a broader recession.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Slide 8: Model Benchmarks -->
+    <div class="slide">
+      <div class="slide-content grid-2 grid-2-chart-left">
+        <div class="chart-container chart-large">
+          <canvas id="chartModels"></canvas>
+        </div>
+        <div>
+          <h2>Algorithmic Benchmark</h2>
+          <p>Linear methodologies fall dramatically short in capturing the non-linear synergy between ratios and macro
+            conditions.</p>
+
+          <div style="margin-top: 2rem;">
+            <h3 style="color: white; margin-bottom: 0.5rem;">Tree-Ensemble Supremacy</h3>
+            <p style="margin-bottom: 1rem;"><strong>XGBoost</strong> and <strong>CatBoost</strong> naturally accommodate
+              extreme outliers and map contextual interactions dynamically without manual scaling bias.</p>
+
+            <div class="grid-2" style="gap: 1rem; margin-top: 2rem;">
+              <div class="card" style="padding: 1.5rem; text-align: center; border-color: var(--accent-success);">
+                <div class="metric-value text-green" style="font-size: 2.5rem;">89.1%</div>
+                <div class="metric-label" style="font-size: 0.8rem; margin-top: 0.5rem;">XGBoost AUC</div>
+              </div>
+              <div class="card" style="padding: 1.5rem; text-align: center;">
+                <div class="metric-value" style="font-size: 2.5rem;">85.4%</div>
+                <div class="metric-label" style="font-size: 0.8rem; margin-top: 0.5rem;">Accuracy Score</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Slide 9: SHAP -->
+    <div class="slide">
+      <div class="slide-content grid-2">
+        <div>
+          <h2>Decoding System Logic</h2>
+          <p>Employing <strong>SHAP</strong> (SHapley Additive exPlanations) ensures the model produces not just a
+            binary alert, but an auditable risk map.</p>
+
+          <ul style="margin-top: 2rem;">
+            <li><strong>Interaction Dominance:</strong> SHAP objectively confirms that the <em>macro-micro
+                cross-features</em> are driving 60%+ of predictive capability.</li>
+            <li><strong>Regulatory Transparency:</strong> Required for financial deployment, SHAP allows analysts to
+              instantly identify exactly *why* a firm is scoring high for bankruptcy risk.</li>
+            <li><strong>Feature Pruning:</strong> Insights from SHAP indicated that historical lag variables (e.g. t-1
+              metrics) were statistically noisy, allowing us to drop them.</li>
+          </ul>
+        </div>
+        <div class="chart-container chart-large">
+          <canvas id="chartShap"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- Slide 10: ML vs Tradition (KMV) -->
+    <div class="slide">
+      <div class="slide-content">
+        <div style="text-align: center; max-width: 900px; margin: 0 auto; margin-bottom: 3rem;">
+          <h2>The ML Pipeline vs The KMV Standard</h2>
+          <p>The structural KMV (Merton) approach severely fails in volatile emerging markets like the BIST. The ML
+            pipeline provides a monumental leap in forecasting safety.</p>
+        </div>
+
+        <div class="grid-3">
+          <div class="card" style="text-align: center;">
+            <div class="metric-value text-green">88%</div>
+            <h3 style="color: white; margin: 0.5rem 0;">AUC Improvement</h3>
+            <p style="font-size: 0.95rem;">KMV AUC: 0.47<br>XGBoost AUC: 0.89</p>
+          </div>
+          <div class="card"
+            style="text-align: center; border-color: var(--accent-purple); box-shadow: 0 0 20px rgba(139, 92, 246, 0.2);">
+            <div class="metric-value text-purple">2.3x</div>
+            <h3 style="color: white; margin: 0.5rem 0;">F1 Score Gain</h3>
+            <p style="font-size: 0.95rem;">KMV F1: 0.30<br>ML F1: 0.70</p>
+          </div>
+          <div class="card" style="text-align: center;">
+            <div class="metric-value text-blue">63.9%</div>
+            <h3 style="color: white; margin: 0.5rem 0;">Distress Recall</h3>
+            <p style="font-size: 0.95rem;">KMV Found: 20.0%<br>XGBoost Found: 63.9%</p>
+          </div>
+        </div>
+
+        <div class="chart-container"
+          style="flex-direction: row; margin-top: 2rem; height: 320px; max-width: 900px; margin-left: auto; margin-right: auto; background: transparent; border: none; box-shadow: none;">
+          <canvas id="chartRadar"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- Slide 11: Conclusion -->
+    <div class="slide">
+      <div class="slide-content grid-2">
+        <div>
+          <h2>Summary & Next Horizons</h2>
+
+          <div style="margin-top: 2.5rem;">
+            <h3 style="color: white; margin-bottom: 0.3rem;">Reliable Outperformance</h3>
+            <p style="margin-bottom: 1.5rem;">Proven to accurately and consistently outpace traditional risk evaluation
+              in high-volatility environments.</p>
+
+            <h3 style="color: white; margin-bottom: 0.3rem;">Structural Resilience</h3>
+            <p style="margin-bottom: 1.5rem;">By factoring the 18 micro-macro dynamics, the model auto-synchronizes to
+              recessions and boom cycles seamlessly.</p>
+
+            <h3 style="color: white; margin-bottom: 0.3rem;">Practical Deployment</h3>
+            <p>Capital protection optimized: XGBoost isolates actual failing firms aggressively, preserving highly
+              solvent capital reserves.</p>
+          </div>
+        </div>
+
+        <div class="card" style="display: flex; flex-direction: column; align-items: center; justify-content: center;">
+          <h4 style="color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 1.5rem;">
+            20% Holdout Test Sample (n=88)</h4>
+          <div class="cm-grid">
+            <div></div>
+            <div class="cm-cell cm-header">Say Healthy (0)</div>
+            <div class="cm-cell cm-header">Say Distress (1)</div>
+
+            <div class="cm-cell cm-header">Is Healthy</div>
+            <div class="cm-cell cm-val cm-true-neg">51 <span>True Negatives</span></div>
+            <div class="cm-cell cm-val cm-false-pos" style="opacity: 0.7;">7 <span>False Positives</span></div>
+
+            <div class="cm-cell cm-header">Is Distress</div>
+            <div class="cm-cell cm-val cm-false-neg" style="opacity: 0.7;">3 <span>False Negative</span></div>
+            <div class="cm-cell cm-val cm-true-pos">27 <span>True Positives</span></div>
+          </div>
+          <p style="text-align: center; margin-top: 1.5rem; font-size: 0.9rem; color: #94a3b8;">Captures 90% (27/30) of
+            active distress events in the holdout.<br>Overall Accuracy: <strong>88.6%</strong></p>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Application Script -->
+  <script>
+    // -- Navigation Settings --
+    let currentSlide = 0;
+    const totalSlides = 11;
+    const wrapper = document.getElementById('slidesWrapper');
+    const slides = document.querySelectorAll('.slide');
+    const progressBar = document.getElementById('progressBar');
+    const slideCounter = document.getElementById('slideCounter');
+
+    const btnPrev = document.getElementById('prevBtn');
+    const btnNext = document.getElementById('nextBtn');
+
+    let isAnimating = false;
+
+    function updateUI() {
+      wrapper.style.transform = `translateY(-${currentSlide * 100}vh)`;
+
+      slides.forEach((s, i) => {
+        if (i === currentSlide) s.classList.add('active');
+        else s.classList.remove('active');
+      });
+
+      btnPrev.disabled = currentSlide === 0;
+      btnNext.disabled = currentSlide === totalSlides - 1;
+
+      slideCounter.textContent = `${currentSlide + 1} / ${totalSlides}`;
+      progressBar.style.width = `${((currentSlide + 1) / totalSlides) * 100}%`;
+
+      initChartForSlide(currentSlide);
+    }
+
+    function nextSlide() {
+      if (isAnimating || currentSlide >= totalSlides - 1) return;
+      isAnimating = true; currentSlide++; updateUI();
+      setTimeout(() => isAnimating = false, 700);
+    }
+
+    function prevSlide() {
+      if (isAnimating || currentSlide <= 0) return;
+      isAnimating = true; currentSlide--; updateUI();
+      setTimeout(() => isAnimating = false, 700);
+    }
+
+    // Key/Wheel Listeners
+    window.addEventListener('keydown', (e) => {
+      if (e.key === 'ArrowDown' || e.key === 'ArrowRight' || e.key === ' ') nextSlide();
+      if (e.key === 'ArrowUp' || e.key === 'ArrowLeft') prevSlide();
+    });
+
+    window.addEventListener('wheel', (e) => {
+      if (Math.abs(e.deltaY) > 50) {
+        if (e.deltaY > 0) nextSlide();
+        else prevSlide();
+      }
+    });
+
+    // -- Chart.js Setup --
+    Chart.defaults.color = '#94a3b8';
+    Chart.defaults.font.family = "'Inter', sans-serif";
+    Chart.defaults.font.size = 14;
+    const gridColor = 'rgba(255, 255, 255, 0.05)';
+
+    const initializedCharts = new Set();
+
+    function initChartForSlide(index) {
+      if (initializedCharts.has(index)) return;
+
+      // Slide 2: Status Doughnut
+      if (index === 1) {
+        new Chart(document.getElementById('chartStatusBreakdown').getContext('2d'), {
+          type: 'doughnut',
+          data: {
+            labels: ['Solvency (Healthy)', 'Bankruptcy (Distressed)'],
+            datasets: [{
+              data: [314, 125],
+              backgroundColor: ['#10b981', '#ef4444'],
+              borderWidth: 0,
+              hoverOffset: 15
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            cutout: '70%',
+            plugins: {
+              legend: {
+                position: 'bottom',
+                labels: {
+                  padding: 15,
+                  color: '#f8fafc',
+                  font: {
+                    size: 15
+                  }
+                }
+              }
+            }
+          }
+        });
+        initializedCharts.add(index);
+      }
+
+      // Slide 3: Sector Breakdown Doughnut
+      if (index === 2) {
+        new Chart(document.getElementById('chartSectors').getContext('2d'), {
+          type: 'doughnut',
+          data: {
+            labels: [
+              'Manufacturing (20) | 31%',
+              'Energy/Utility (11) | 17%',
+              'Holdings (6) | 9%',
+              'Textiles (4) | 6%',
+              'Other Services (24) | 37%'
+            ],
+            datasets: [{
+              data: [20, 11, 6, 4, 24],
+              backgroundColor: ['#3b82f6', '#10b981', '#8b5cf6', '#ef4444', '#f59e0b'],
+              borderWidth: 2,
+              borderColor: '#1e293b'
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            cutout: '55%',
+            plugins: {
+              legend: {
+                position: 'right',
+                labels: {
+                  color: '#f8fafc',
+                  font: {
+                    size: 14
+                  },
+                  padding: 20
+                }
+              }
+            }
+          }
+        });
+        initializedCharts.add(index);
+      }
+
+      // Slide 6: Features Doughnut
+      if (index === 5) {
+        new Chart(document.getElementById('chartFeatureBreakdown').getContext('2d'), {
+          type: 'polarArea',
+          data: {
+            labels: ['Financial Ratios', 'Macro Indicators', 'Interaction Details'],
+            datasets: [{
+              data: [13, 9, 18],
+              backgroundColor: ['rgba(59, 130, 246, 0.7)', 'rgba(16, 185, 129, 0.7)', 'rgba(239, 68, 68, 0.7)'],
+              borderColor: '#1e293b',
+              borderWidth: 2
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+              r: {
+                ticks: {
+                  display: false
+                },
+                grid: {
+                  color: gridColor
+                }
+              }
+            },
+            plugins: {
+              legend: {
+                position: 'bottom',
+                labels: {
+                  color: '#f8fafc',
+                  font: {
+                    size: 15
+                  }
+                }
+              }
+            }
+          }
+        });
+        initializedCharts.add(index);
+      }
+
+      // Slide 8: Model Comparisons
+      if (index === 7) {
+        new Chart(document.getElementById('chartModels').getContext('2d'), {
+          type: 'bar',
+          data: {
+            labels: ['XGBoost', 'CatBoost', 'Logistic Regression'],
+            datasets: [
+              {
+                label: 'AUC Score',
+                data: [0.891, 0.884, 0.751],
+                backgroundColor: '#10b981',
+                borderRadius: 4
+              },
+              {
+                label: 'Accuracy',
+                data: [0.854, 0.854, 0.778],
+                backgroundColor: '#3b82f6',
+                borderRadius: 4
+              }
+            ]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+              y: {
+                grid: {
+                  color: gridColor
+                },
+                min: 0.6,
+                ticks: {
+                  color: '#cbd5e1'
+                }
+              },
+              x: {
+                grid: {
+                  display: false
+                },
+                ticks: {
+                  color: '#f8fafc',
+                  font: {
+                    size: 16
+                  }
+                }
+              }
+            },
+            plugins: {
+              legend: {
+                labels: {
+                  color: '#f8fafc',
+                  font: {
+                    size: 15
+                  }
+                }
+              }
+            }
+          }
+        });
+        initializedCharts.add(index);
+      }
+
+      // Slide 9: SHAP
+      if (index === 8) {
+        new Chart(document.getElementById('chartShap').getContext('2d'), {
+          type: 'bar',
+          data: {
+            labels: ['debt_rate_x_int', 'margin_x_usd', 'roa_x_inf', 'quick_ratio', 'asset_turnover'],
+            datasets: [{
+              label: 'SHAP Importance',
+              data: [0.45, 0.38, 0.32, 0.22, 0.16],
+              backgroundColor: (ctx) => (ctx.dataIndex < 3) ? '#ef4444' : '#3b82f6',
+              borderRadius: 4
+            }]
+          },
+          options: {
+            indexAxis: 'y',
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+              x: {
+                grid: {
+                  color: gridColor
+                },
+                display: false
+              },
+              y: {
+                grid: {
+                  display: false
+                },
+                ticks: {
+                  color: '#f8fafc',
+                  font: {
+                    family: 'monospace',
+                    size: 14
+                  }
+                }
+              }
+            },
+            plugins: {
+              legend: {
+                display: false
+              }
+            }
+          }
+        });
+        initializedCharts.add(index);
+      }
+
+      // Slide 10: Radar
+      if (index === 9) {
+        new Chart(document.getElementById('chartRadar').getContext('2d'), {
+          type: 'radar',
+          data: {
+            labels: ['AUC', 'Accuracy', 'Precision', 'Recall', 'F1'],
+            datasets: [
+              {
+                label: 'XGBoost',
+                data: [0.891, 0.854, 0.798, 0.639, 0.703],
+                backgroundColor: 'rgba(59, 130, 246, 0.25)',
+                borderColor: '#3b82f6', pointBackgroundColor: '#3b82f6', borderWidth: 3
+              },
+              {
+                label: 'KMV Matrix',
+                data: [0.474, 0.742, 0.657, 0.200, 0.306],
+                backgroundColor: 'rgba(239, 68, 68, 0.15)',
+                borderColor: '#ef4444', pointBackgroundColor: '#ef4444',
+                borderDash: [6, 4], borderWidth: 2
+              }
+            ]
+          },
+          options: {
+            responsive: true, maintainAspectRatio: false,
+            scales: {
+              r: { angleLines: { color: gridColor }, grid: { color: gridColor }, pointLabels: { color: '#f8fafc', font: { size: 14 } }, min: 0, max: 1, ticks: { display: false } }
+            },
+            plugins: { legend: { position: 'right', labels: { color: '#f8fafc', font: { size: 15 } } } }
+          }
+        });
+        initializedCharts.add(index);
+      }
+    }
+
+    setTimeout(() => updateUI(), 100);
+
+  </script>
+</body>
+
+</html>

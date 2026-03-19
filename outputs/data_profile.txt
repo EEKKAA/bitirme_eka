@@ -1,0 +1,129 @@
+======================================================================
+  FINANCIAL DISTRESS PREDICTION — DATA PROFILING REPORT
+======================================================================
+
+Dataset shape: 521 rows × 73 columns
+Number of companies: 84
+Years covered: [2018, 2019, 2020, 2021, 2022, 2023, 2024]
+
+─── Class Distribution ───
+  Healthy (label=0): 417 (80.0%)
+  Distressed (label=1): 104 (20.0%)
+
+─── Missing Values per Feature ───
+  equity_to_long_term_liabilities              :    3 missing (0.6%)
+  gross_profit_to_long_term_liabilities        :    3 missing (0.6%)
+  net_operating_profit_margin                  :    5 missing (1.0%)
+  operating_income_to_assets_trend_1yr         :   64 missing (12.3%)
+  short_term_liabilities_to_assets_trend_1yr   :   64 missing (12.3%)
+  asset_turnover_trend_1yr                     :   64 missing (12.3%)
+  gross_profit_to_long_term_liabilities_trend_1yr:   69 missing (13.2%)
+  gdp_growth_lag1                              :   59 missing (11.3%)
+  inflation_rate_lag1                          :   59 missing (11.3%)
+  interest_rate_lag1                           :   59 missing (11.3%)
+  usdtry_avg_lag1                              :   59 missing (11.3%)
+  usdtry_change_lag1                           :   59 missing (11.3%)
+  unemployment_rate_lag1                       :   59 missing (11.3%)
+  industrial_prod_growth_lag1                  :   59 missing (11.3%)
+  credit_growth_lag1                           :   59 missing (11.3%)
+  m2_growth_lag1                               :   59 missing (11.3%)
+  gp_ltl_x_inflation                           :    3 missing (0.6%)
+  margin_x_usdtry                              :    5 missing (1.0%)
+  → 29/47 features have zero missing values
+
+─── Company Observation Counts ───
+  ADEL        : 7 observations
+  GENIL       : 7 observations
+  SELGD       : 7 observations  [DISTRESSED: 3 yrs]
+  SASA        : 7 observations
+  RALYH       : 7 observations  [DISTRESSED: 1 yrs]
+  PGSUS       : 7 observations
+  PETKM       : 7 observations
+  ORMA        : 7 observations
+  NUHCM       : 7 observations
+  NTGAZ       : 7 observations
+  MIATK       : 7 observations
+  LOGO        : 7 observations
+  KRDMD       : 7 observations
+  KOZAA       : 7 observations
+  AEFES       : 7 observations
+  KCHOL       : 7 observations
+  ISGYO       : 7 observations
+  SISE        : 7 observations
+  SMRTG       : 7 observations
+  SNKRN       : 7 observations  [DISTRESSED: 3 yrs]
+  TUPRS       : 7 observations
+  YAYLA       : 7 observations
+  YATAS       : 7 observations
+  VKING       : 7 observations
+  VESTL       : 7 observations
+  VESBE       : 7 observations
+  ULKER       : 7 observations
+  TTRAK       : 7 observations
+  SOKM        : 7 observations
+  TOASO       : 7 observations
+  THYAO       : 7 observations
+  TCELL       : 7 observations
+  TBORG       : 7 observations
+  TAVHL       : 7 observations
+  TATGD       : 7 observations
+  GUBRF       : 7 observations
+  KERVT       : 7 observations  [DISTRESSED: 2 yrs]
+  FROTO       : 7 observations
+  DOHOL       : 7 observations
+  AKCNS       : 7 observations
+  AKSA        : 7 observations
+  ASELS       : 7 observations
+  ASUZU       : 7 observations
+  BIMAS       : 7 observations
+  BRSAN       : 7 observations
+  BRYAT       : 7 observations
+  CIMSA       : 7 observations
+  FRIGO       : 7 observations  [DISTRESSED: 2 yrs]
+  DARDL       : 7 observations  [DISTRESSED: 2 yrs]
+  DENGE       : 7 observations  [DISTRESSED: 4 yrs]
+  DGATE       : 7 observations
+  DOAS        : 7 observations
+  ZOREN       : 7 observations
+  EMKEL       : 7 observations  [DISTRESSED: 4 yrs]
+  ECILC       : 7 observations
+  ETILR       : 7 observations  [DISTRESSED: 4 yrs]
+  ENKAI       : 7 observations
+  ENJSA       : 7 observations
+  EBEBK       : 6 observations
+  ZEDUR       : 6 observations  [DISTRESSED: 4 yrs]
+  ASTOR       : 6 observations
+  COSMO       : 6 observations  [DISTRESSED: 4 yrs]
+  CWENE       : 5 observations
+  UFUK        : 5 observations  [DISTRESSED: 4 yrs]
+  AHGAZ       : 5 observations
+  ENERY       : 5 observations
+  BRMEN       : 4 observations  [DISTRESSED: 4 yrs]
+  BRKO        : 4 observations  [DISTRESSED: 4 yrs]
+  YGYO        : 4 observations  [DISTRESSED: 4 yrs]
+  AGROT       : 4 observations  [DISTRESSED: 4 yrs]
+  KUVVA       : 4 observations  [DISTRESSED: 4 yrs]
+  MMCAS       : 4 observations  [DISTRESSED: 4 yrs]
+  EKIZ        : 4 observations  [DISTRESSED: 4 yrs]
+  KERVN       : 4 observations  [DISTRESSED: 4 yrs]
+  VANGD       : 4 observations  [DISTRESSED: 4 yrs]
+  UMPAS       : 4 observations
+  CASA        : 4 observations  [DISTRESSED: 4 yrs]
+  EMNIS       : 4 observations  [DISTRESSED: 4 yrs]
+  MEGAP       : 4 observations  [DISTRESSED: 4 yrs]
+  ATEKS       : 4 observations  [DISTRESSED: 4 yrs]
+  ATSHY       : 4 observations  [DISTRESSED: 4 yrs]
+  DIRIT       : 4 observations  [DISTRESSED: 4 yrs]
+  SNPAM       : 4 observations  [DISTRESSED: 4 yrs]
+  ROYAL       : 3 observations  [DISTRESSED: 3 yrs]
+
+─── Financial Ratio Summary Statistics ───
+       short_term_liabilities_to_assets  equity_to_assets  equity_to_short_term_liabilities  equity_to_long_term_liabilities  fixed_assets_to_total_liabilities  gross_profit_to_long_term_liabilities  current_assets_to_total_liabilities  quick_ratio  working_capital_to_total_assets  operating_income_to_assets  ebit_to_current_liabilities  net_operating_profit_margin  sales_to_current_assets  asset_turnover
+count                          521.0000          521.0000                          521.0000                         518.0000                           521.0000                               518.0000                             521.0000     521.0000                         521.0000                    521.0000                     521.0000                     516.0000                 521.0000        521.0000
+mean                             0.3896            0.4476                           18.0414                         287.1877                             2.0029                                34.6411                               1.1327       2.3017                           0.0677                      0.0777                       2.1495                     -93.8097                   2.0409          0.8287
+std                              0.2696            0.3214                          169.2046                        5804.2922                             5.1773                               572.6113                               1.7779      10.0718                           0.2791                      0.1152                      21.0094                    2076.5218                   2.5837          0.6965
+min                              0.0003           -2.9184                           -1.0788                          -3.9965                             0.0176                                -1.5781                               0.0050       0.0055                          -2.3265                     -0.9955                     -50.7202                  -47165.4376                   0.0000          0.0000
+25%                              0.2167            0.2934                            0.6236                           1.4873                             0.6120                                 0.3744                               0.5744       0.5706                          -0.0408                      0.0237                       0.1157                       0.0424                   1.0022          0.3839
+50%                              0.3609            0.4505                            1.2430                           3.8177                             0.9700                                 1.0055                               0.8817       0.8980                           0.0752                      0.0734                       0.2779                       0.1072                   1.5569          0.6666
+75%                              0.5188            0.6166                            2.5425                           9.6988                             1.5622                                 3.0433                               1.1812       1.3061                           0.1931                      0.1296                       0.5284                       0.1853                   2.2763          1.0516
+max                              2.7053            0.9912                         3252.3784                      131998.3097                            79.9223                             12743.7751                              33.2165     183.0668                           0.8502                      0.7662                     382.9786                      17.1821                  33.7817          3.6974
