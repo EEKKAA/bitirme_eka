@@ -1,0 +1,201 @@
+=================================================================
+  Financial Distress Prediction — BIST Companies
+  Büyükarýkan & Büyükarýkan (2025) Methodology
+=================================================================
+
+[Step 1] Loading dataset...
+  Records: 1880
+
+[Step 2] Preprocessing...
+  Handling missing values (company-median -> global-median)...
+  OK: All 29 features have zero missing values
+  Features: 29
+  Distressed: 688 (36.6%)
+  Healthy: 1192 (63.4%)
+
+==================================================
+  MODE: No SMOTE
+==================================================
+
+  --- Logistic Regression ---
+    SMOTE OFF (distress ratio: 36.60%)
+    Fold  1: AUC=0.6766  F1=0.5067  MCC=0.1862
+    Fold  2: AUC=0.7675  F1=0.6250  MCC=0.3703
+    Fold  3: AUC=0.6771  F1=0.5455  MCC=0.2395
+    Fold  4: AUC=0.7928  F1=0.6533  MCC=0.4295
+    Fold  5: AUC=0.7232  F1=0.5541  MCC=0.2684
+    Fold  6: AUC=0.7290  F1=0.5732  MCC=0.2678
+    Fold  7: AUC=0.7698  F1=0.6626  MCC=0.4304
+    Fold  8: AUC=0.6929  F1=0.5749  MCC=0.2658
+    Fold  9: AUC=0.7842  F1=0.6506  MCC=0.4063
+    Fold 10: AUC=0.7423  F1=0.5942  MCC=0.3589
+
+    Mean Metrics:
+        accuracy: 0.6638 +/- 0.0398
+       precision: 0.5335 +/- 0.0460
+          recall: 0.6743 +/- 0.0771
+              f1: 0.5940 +/- 0.0498
+             auc: 0.7355 +/- 0.0410
+             mcc: 0.3223 +/- 0.0827
+    Best Params: {'C': 10, 'penalty': 'l2'}
+
+  --- Random Forest ---
+    SMOTE OFF (distress ratio: 36.60%)
+    Fold  1: AUC=0.6761  F1=0.4211  MCC=0.1896
+    Fold  2: AUC=0.8070  F1=0.6504  MCC=0.4893
+    Fold  3: AUC=0.7811  F1=0.5536  MCC=0.3999
+    Fold  4: AUC=0.8241  F1=0.6429  MCC=0.5312
+    Fold  5: AUC=0.7872  F1=0.6129  MCC=0.4321
+    Fold  6: AUC=0.7651  F1=0.5691  MCC=0.3703
+    Fold  7: AUC=0.7413  F1=0.5806  MCC=0.3836
+    Fold  8: AUC=0.8285  F1=0.6471  MCC=0.4472
+    Fold  9: AUC=0.7982  F1=0.5517  MCC=0.3759
+    Fold 10: AUC=0.7885  F1=0.5739  MCC=0.4137
+
+    Mean Metrics:
+        accuracy: 0.7335 +/- 0.0349
+       precision: 0.6856 +/- 0.0756
+          recall: 0.5072 +/- 0.0747
+              f1: 0.5803 +/- 0.0643
+             auc: 0.7797 +/- 0.0424
+             mcc: 0.4033 +/- 0.0863
+    Best Params: {'max_depth': 10, 'min_samples_leaf': 3, 'n_estimators': 500}
+
+  --- XGBoost ---
+    SMOTE OFF (distress ratio: 36.60%)
+    Fold  1: AUC=0.6668  F1=0.4848  MCC=0.2068
+    Fold  2: AUC=0.8221  F1=0.6667  MCC=0.5136
+    Fold  3: AUC=0.7336  F1=0.5984  MCC=0.3993
+    Fold  4: AUC=0.8310  F1=0.6613  MCC=0.5049
+    Fold  5: AUC=0.7980  F1=0.6418  MCC=0.4442
+    Fold  6: AUC=0.7695  F1=0.5500  MCC=0.3545
+    Fold  7: AUC=0.7617  F1=0.4957  MCC=0.2881
+    Fold  8: AUC=0.8200  F1=0.6066  MCC=0.4304
+    Fold  9: AUC=0.8031  F1=0.6202  MCC=0.4256
+    Fold 10: AUC=0.8036  F1=0.6034  MCC=0.4524
+
+    Mean Metrics:
+        accuracy: 0.7309 +/- 0.0408
+       precision: 0.6668 +/- 0.0719
+          recall: 0.5363 +/- 0.0628
+              f1: 0.5929 +/- 0.0604
+             auc: 0.7809 +/- 0.0477
+             mcc: 0.4020 +/- 0.0906
+    Best Params: {'colsample_bytree': 1.0, 'learning_rate': 0.05, 'max_depth': 7, 'n_estimators': 100, 'scale_pos_weight': 1.7, 'subsample': 0.8}
+
+  --- CatBoost ---
+    SMOTE OFF (distress ratio: 36.60%)
+    Fold  1: AUC=0.7022  F1=0.5000  MCC=0.2301
+    Fold  2: AUC=0.8354  F1=0.6531  MCC=0.4357
+    Fold  3: AUC=0.7656  F1=0.6094  MCC=0.4125
+    Fold  4: AUC=0.8154  F1=0.6512  MCC=0.4730
+    Fold  5: AUC=0.7746  F1=0.6241  MCC=0.3990
+    Fold  6: AUC=0.7791  F1=0.6324  MCC=0.4242
+    Fold  7: AUC=0.7737  F1=0.6107  MCC=0.4048
+    Fold  8: AUC=0.8294  F1=0.7089  MCC=0.5158
+    Fold  9: AUC=0.8148  F1=0.6471  MCC=0.4472
+    Fold 10: AUC=0.7928  F1=0.6364  MCC=0.4413
+
+    Mean Metrics:
+        accuracy: 0.7298 +/- 0.0296
+       precision: 0.6335 +/- 0.0470
+          recall: 0.6264 +/- 0.0821
+              f1: 0.6273 +/- 0.0502
+             auc: 0.7883 +/- 0.0371
+             mcc: 0.4184 +/- 0.0708
+    Best Params: {'depth': 6, 'iterations': 500, 'learning_rate': 0.03}
+
+  --- LightGBM ---
+    SMOTE OFF (distress ratio: 36.60%)
+    Fold  1: AUC=0.6745  F1=0.5324  MCC=0.2585
+    Fold  2: AUC=0.8218  F1=0.6763  MCC=0.4868
+    Fold  3: AUC=0.7567  F1=0.6212  MCC=0.4180
+    Fold  4: AUC=0.8156  F1=0.6719  MCC=0.5076
+    Fold  5: AUC=0.7939  F1=0.6232  MCC=0.4047
+    Fold  6: AUC=0.7758  F1=0.6475  MCC=0.4408
+    Fold  7: AUC=0.7732  F1=0.6119  MCC=0.3978
+    Fold  8: AUC=0.8021  F1=0.6623  MCC=0.4429
+    Fold  9: AUC=0.7842  F1=0.6370  MCC=0.4341
+    Fold 10: AUC=0.7753  F1=0.6202  MCC=0.4256
+
+    Mean Metrics:
+        accuracy: 0.7319 +/- 0.0303
+       precision: 0.6387 +/- 0.0497
+          recall: 0.6250 +/- 0.0505
+              f1: 0.6304 +/- 0.0392
+             auc: 0.7773 +/- 0.0392
+             mcc: 0.4217 +/- 0.0633
+    Best Params: {'learning_rate': 0.05, 'max_depth': 5, 'min_child_samples': 10, 'n_estimators': 300, 'num_leaves': 31, 'subsample': 0.8}
+
+==================================================
+  MODE: SMOTE
+==================================================
+
+  --- Logistic Regression ---
+    SMOTE forced ON (distress ratio: 36.60%)
+    Fold  1: AUC=0.6754  F1=0.5033  MCC=0.1779
+    Fold  2: AUC=0.7645  F1=0.6250  MCC=0.3703
+    Fold  3: AUC=0.6798  F1=0.5235  MCC=0.2151
+    Fold  4: AUC=0.7977  F1=0.6486  MCC=0.4249
+    Fold  5: AUC=0.7266  F1=0.5772  MCC=0.3044
+    Fold  6: AUC=0.7238  F1=0.5917  MCC=0.2941
+    Fold  7: AUC=0.7779  F1=0.6748  MCC=0.4525
+    Fold  8: AUC=0.6858  F1=0.5576  MCC=0.2377
+    Fold  9: AUC=0.7846  F1=0.6424  MCC=0.3922
+    Fold 10: AUC=0.7449  F1=0.6232  MCC=0.4047
+
+    Mean Metrics:
+        accuracy: 0.6665 +/- 0.0448
+       precision: 0.5373 +/- 0.0533
+          recall: 0.6758 +/- 0.0782
+              f1: 0.5967 +/- 0.0533
+             auc: 0.7361 +/- 0.0429
+             mcc: 0.3274 +/- 0.0905
+    Best Params: {'C': 10, 'penalty': 'l2'}
+
+  --- Random Forest ---
+    SMOTE forced ON (distress ratio: 36.60%)
+    Fold  1: AUC=0.6842  F1=0.4754  MCC=0.2316
+    Fold  2: AUC=0.8078  F1=0.6462  MCC=0.4609
+    Fold  3: AUC=0.7668  F1=0.5424  MCC=0.3524
+    Fold  4: AUC=0.8296  F1=0.6667  MCC=0.5061
+    Fold  5: AUC=0.7839  F1=0.6212  MCC=0.4180
+    Fold  6: AUC=0.7676  F1=0.6087  MCC=0.3818
+    Fold  7: AUC=0.7425  F1=0.6000  MCC=0.3916
+    Fold  8: AUC=0.8100  F1=0.6575  MCC=0.4430
+    Fold  9: AUC=0.7788  F1=0.5821  MCC=0.3514
+    Fold 10: AUC=0.7886  F1=0.5938  MCC=0.3887
+
+    Mean Metrics:
+        accuracy: 0.7234 +/- 0.0297
+       precision: 0.6371 +/- 0.0495
+          recall: 0.5696 +/- 0.0734
+              f1: 0.5994 +/- 0.0544
+             auc: 0.7760 +/- 0.0387
+             mcc: 0.3925 +/- 0.0708
+    Best Params: {'max_depth': 10, 'min_samples_leaf': 1, 'n_estimators': 200}
+
+  --- XGBoost ---
+    SMOTE forced ON (distress ratio: 36.60%)
+    Fold  1: AUC=0.7103  F1=0.5419  MCC=0.2338
+    Fold  2: AUC=0.8321  F1=0.6711  MCC=0.4591
+    Fold  3: AUC=0.7477  F1=0.5891  MCC=0.3783
+    Fold  4: AUC=0.8244  F1=0.6667  MCC=0.4804
+    Fold  5: AUC=0.7958  F1=0.6324  MCC=0.4242
+    Fold  6: AUC=0.7913  F1=0.6395  MCC=0.4115
+    Fold  7: AUC=0.7399  F1=0.5957  MCC=0.3536
+    Fold  8: AUC=0.8286  F1=0.6795  MCC=0.4663
+    Fold  9: AUC=0.8010  F1=0.6351  MCC=0.4026
+    Fold 10: AUC=0.8000  F1=0.7101  MCC=0.5421
+
+    Mean Metrics:
+        accuracy: 0.7218 +/- 0.0411
+       precision: 0.6147 +/- 0.0581
+          recall: 0.6643 +/- 0.0639
+              f1: 0.6361 +/- 0.0472
+             auc: 0.7871 +/- 0.0391
+             mcc: 0.4152 +/- 0.0795
+    Best Params: {'colsample_bytree': 1.0, 'learning_rate': 0.1, 'max_depth': 7, 'n_estimators': 300, 'scale_pos_weight': 1.7, 'subsample': 0.8}
+
+  --- CatBoost ---
+    SMOTE forced ON (distress ratio: 36.60%)

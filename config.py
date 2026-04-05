@@ -18,7 +18,7 @@ os.makedirs(OUTPUTS_DIR, exist_ok=True)
 os.makedirs(PLOTS_DIR, exist_ok=True)
 
 # ── File paths ────────────────────────────────────────────────────────────
-DATASET_FILENAME = OUTPUTS_DIR / "dataset.csv"
+DATASET_FILENAME = OUTPUTS_DIR / "dataset_final.csv"
 CV_RESULTS_FILENAME = OUTPUTS_DIR / "cv_results.csv"
 BEST_MODEL_FILENAME = OUTPUTS_DIR / "financial_distress_model.pkl"
 SELECTED_RATIOS_FILENAME = OUTPUTS_DIR / "selected_ratios.json"
@@ -50,6 +50,8 @@ REQUIRED_FINANCIAL_ITEMS = [
     "Admin Expense",
     "RD Expense",
     "CFO",
+    "Paid Capital",       # TTK 376 hesabı: Ödenmiş Sermaye
+    "Legal Reserves",     # TTK 376 hesabı: Kanuni Yedek Akçe
 ]
 
 # ── Selected financial ratios (Büyükarıkan & Büyükarıkan 2025 + Literature Substs) ─
@@ -121,27 +123,14 @@ INTERACTION_FEATURES = [
     "log_assets_x_gdp",          # log(Total Assets) × gdp_growth          — firm size cyclicality
 ]
 
-# Combined feature set for v5.1: Strictly the Top 10 SHAP features to prevent overfitting
-TOP_SHAP_FEATURES = [
-    "cfo_x_interest",
-    "equity_to_long_term_liabilities",
-    "gp_ltl_x_inflation",
-    "asset_turnover",
-    "equity_to_short_term_liabilities",
-    "short_term_liabilities_to_assets_trend_1yr",
-    "fixed_assets_to_total_liabilities",
-    "gross_profit_to_long_term_liabilities_trend_1yr",
-    "quick_ratio",
-    "quick_x_unemployment"
-]
-
-CANDIDATE_FEATURES = TOP_SHAP_FEATURES
+# Combined feature set: all ratios + trends + interactions (let feature selection pick best)
+CANDIDATE_FEATURES = CANDIDATE_RATIOS + TREND_FEATURES + INTERACTION_FEATURES
 
 TARGET = "bankruptcy_label"
 
 # ── Feature selection ─────────────────────────────────────────────────────
-FEATURE_SELECTION_METHOD = "f_regression"
-FEATURE_SELECTION_K = len(TOP_SHAP_FEATURES)   # Do not drop any of these 10 curated features
+FEATURE_SELECTION_METHOD = "f_classif"
+FEATURE_SELECTION_K = 15   # Select top 15 features from full pool via f_classif
 
 # ── Class imbalance ───────────────────────────────────────────────────────
 SMOTE_THRESHOLD = 0.60     # Apply SMOTE if distress ratio > 60%
@@ -157,10 +146,9 @@ PARAM_GRIDS = {
         "penalty": ["l2"],
     },
     "Random Forest": {
-        "n_estimators": [100, 300],
-        "max_depth": [5, 10, None],
-        "min_samples_split": [2, 5],
-        "min_samples_leaf": [1, 2],
+        "n_estimators": [200, 500],
+        "max_depth": [5, 10],
+        "min_samples_leaf": [1, 3],
     },
     "XGBoost": {
         "n_estimators": [100, 300],
@@ -168,7 +156,7 @@ PARAM_GRIDS = {
         "learning_rate": [0.05, 0.1],
         "subsample": [0.8, 1.0],
         "colsample_bytree": [0.8, 1.0],
-        "min_child_weight": [1, 5],
+        "scale_pos_weight": [1, 1.7],
     },
     "CatBoost": {
         "iterations": [200, 500],

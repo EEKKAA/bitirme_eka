@@ -75,22 +75,41 @@ def winsorize(df: pd.DataFrame, lower: float = 0.01, upper: float = 0.99) -> pd.
     return df_out
 
 
+def winsorize_from_train(df_train: pd.DataFrame, df_test: pd.DataFrame,
+                         lower: float = 0.01, upper: float = 0.99):
+    """
+    Winsorizes both train and test using bounds computed from train only.
+    Prevents data leakage by never peeking at test quantiles.
+
+    Returns:
+        (df_train_clipped, df_test_clipped)
+    """
+    df_train = df_train.copy()
+    df_test = df_test.copy()
+    features_present = [f for f in CANDIDATE_FEATURES if f in df_train.columns]
+
+    for col in features_present:
+        lo = df_train[col].quantile(lower)
+        hi = df_train[col].quantile(upper)
+        df_train[col] = df_train[col].clip(lo, hi)
+        df_test[col] = df_test[col].clip(lo, hi)
+
+    return df_train, df_test
+
+
 def preprocess_data(df: pd.DataFrame) -> pd.DataFrame:
     """
-    Runs the preprocessing pipeline: imputation + winsorization.
-    (Scaling is handled inside CV folds to prevent data leakage.)
+    Runs the global preprocessing pipeline: imputation only.
+    Winsorization is handled inside CV folds to prevent data leakage.
 
     Args:
         df: Raw dataset containing feature columns.
 
     Returns:
-        Preprocessed dataset.
+        Preprocessed dataset (imputed, NOT winsorized).
     """
     print("  Handling missing values (company-median -> global-median)...")
     df = handle_missing_values(df)
-
-    print("  Winsorizing outliers (1st-99th percentile)...")
-    df = winsorize(df)
 
     # Report remaining missing
     features_present = [f for f in CANDIDATE_FEATURES if f in df.columns]

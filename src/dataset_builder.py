@@ -184,24 +184,50 @@ def build_dataset(root_folder: Path) -> pd.DataFrame:
         df = df.merge(labels_df, on="company", how="left")
 
         if "bankruptcy_year" in df.columns:
-            # Time-to-Default window limit (T-1, T-2, T-3)
-            # Example: bankruptcy_year = 2024. Window = [2021, 2022, 2023, 2024]
+
+            # ── (A) Olay penceresi: T, T-1, T-2 ─────────────────────────────
             is_distressed = df["bankruptcy_year"].notna()
-            
-            in_window = (df["year"] <= df["bankruptcy_year"]) & (df["year"] >= df["bankruptcy_year"] - 3)
-            too_old = (df["year"] < df["bankruptcy_year"] - 3)
-            
-            # Label as 1 only if in the 3-year window
-            df[TARGET] = (is_distressed & in_window).astype(int)
-            
-            # Drop the noisy healthy-looking past data of bankrupt companies
-            n_before_drop = len(df)
-            df = df[~(is_distressed & too_old)].reset_index(drop=True)
-            n_dropped = n_before_drop - len(df)
-            if n_dropped > 0:
-                print(f"  Removed {n_dropped} rows (look-ahead noise) older than T-3 from distressed companies")
-            
+            label_event = (
+                is_distressed
+                & (df["year"] >= df["bankruptcy_year"] - 2)
+                & (df["year"] <= df["bankruptcy_year"])
+            )
+
+            # ── (B) TTK 376/2 ─────────────────────────────────────────────────
+            # Şart: birikmiş zarar ≥ 2/3 × (ödenmiş sermaye + kanuni yedek)
+            def _col(name):
+                return df[name].fillna(0) if name in df.columns else pd.Series(0.0, index=df.index)
+
+            paid_cap  = _col("Paid Capital")
+            legal_res = _col("Legal Reserves")
+            ret_earn  = _col("Retained Earnings")
+            equity    = _col("Equity")
+
+            capital_base     = paid_cap + legal_res          # ÖdenmişSermaye + KanuniYedek
+            accumulated_loss = (-ret_earn).clip(lower=0)     # Birikmiş zarar (≥0)
+
+            label_376_2 = (
+                (ret_earn < 0)
+                & (capital_base > 0)
+                & (accumulated_loss >= (2 / 3) * capital_base)
+            )
+
+            # ── (C) TTK 376/3: borca batıklık (özkaynak < 0) ─────────────────
+            label_376_3 = equity < 0
+
+            # ── Birleşik etiket ───────────────────────────────────────────────
+            # T-2 öncesi geçmiş yıllar silinmez, 0 olarak kalır.
+            df[TARGET] = (label_event | label_376_2 | label_376_3).astype(int)
+
             df = df.drop(columns=["bankruptcy_year"])
+
+            total_1 = int(df[TARGET].sum())
+            print(f"  Distress labels assigned:")
+            print(f"    (A) Event window (T to T-2) : {int(label_event.sum()):>5} obs")
+            print(f"    (B) TTK 376/2               : {int(label_376_2.sum()):>5} obs")
+            print(f"    (C) TTK 376/3               : {int(label_376_3.sum()):>5} obs")
+            print(f"    Total label=1 (union)       : {total_1:>5} obs")
+            print(f"    Total label=0               : {len(df) - total_1:>5} obs")
         else:
             df[TARGET] = df["company"].isin(
                 labels_df["company"]

@@ -20,6 +20,7 @@ except ImportError:
 
 from config import CV_FOLDS, RANDOM_STATE, SMOTE_THRESHOLD, FEATURE_SELECTION_K
 from src.feature_selection import select_features_freg
+from src.preprocessing import winsorize_from_train
 
 
 def _compute_metrics(y_true, y_pred, y_prob) -> dict:
@@ -91,14 +92,17 @@ def cross_validate_model(model, param_grid, X: pd.DataFrame,
         X_train, X_test = X.iloc[train_idx].copy(), X.iloc[test_idx].copy()
         y_train, y_test = y.iloc[train_idx].copy(), y.iloc[test_idx].copy()
 
-        # 1. Feature selection on training data
+        # 1. Winsorize inside fold (bounds from train only → no leakage)
+        X_train, X_test = winsorize_from_train(X_train, X_test)
+
+        # 2. Feature selection on training data
         sel_features, f_scores, _ = select_features_freg(
             X_train, y_train, k=FEATURE_SELECTION_K
         )
         X_train = X_train[sel_features]
         X_test = X_test[sel_features]
 
-        # 2. MinMax scaling (fit on train, transform both)
+        # 3. MinMax scaling (fit on train, transform both)
         scaler = MinMaxScaler()
         X_train_scaled = pd.DataFrame(
             scaler.fit_transform(X_train),
@@ -109,7 +113,7 @@ def cross_validate_model(model, param_grid, X: pd.DataFrame,
             columns=sel_features, index=X_test.index
         )
 
-        # 3. SMOTE oversampling (training set only)
+        # 4. SMOTE oversampling (training set only)
         if apply_smote:
             smote = SMOTE(random_state=RANDOM_STATE)
             X_train_final, y_train_final = smote.fit_resample(
@@ -118,7 +122,7 @@ def cross_validate_model(model, param_grid, X: pd.DataFrame,
         else:
             X_train_final, y_train_final = X_train_scaled, y_train
 
-        # 4. Hyperparameter tuning with inner CV
+        # 5. Hyperparameter tuning with inner CV
         from sklearn.base import clone
         model_clone = clone(model)
 
@@ -139,14 +143,14 @@ def cross_validate_model(model, param_grid, X: pd.DataFrame,
             fold_model = model_clone
             fold_params = {}
 
-        # 5. Predict on test set
+        # 6. Predict on test set
         y_pred = fold_model.predict(X_test_scaled)
         if hasattr(fold_model, "predict_proba"):
             y_prob = fold_model.predict_proba(X_test_scaled)[:, 1]
         else:
             y_prob = y_pred.astype(float)
 
-        # 6. Compute metrics
+        # 7. Compute metrics
         fold_result = _compute_metrics(y_test, y_pred, y_prob)
         fold_result["fold"] = fold_idx
         fold_result["best_params"] = fold_params

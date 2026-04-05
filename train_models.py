@@ -172,9 +172,13 @@ def main():
     # ── STEP 8: Retrain best model on full data ───────────────────────────
     print("\n[Step 8] Retraining best model on full dataset...")
 
+    # Winsorize full data (no leakage concern — retraining on everything)
+    from src.preprocessing import winsorize
+    X_w = winsorize(X)
+
     # Feature selection on full data
-    sel_features, f_scores, _ = select_features_freg(X, y, k=FEATURE_SELECTION_K)
-    X_selected = X[sel_features]
+    sel_features, f_scores, _ = select_features_freg(X_w, y, k=FEATURE_SELECTION_K)
+    X_selected = X_w[sel_features]
 
     # MinMax scaling
     scaler = MinMaxScaler()

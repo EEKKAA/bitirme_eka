@@ -1,20 +1,20 @@
 """
-Feature selection module using F-regression scoring.
+Feature selection module using F-classification scoring.
 Applied on training data only inside each CV fold.
 """
 import numpy as np
 import pandas as pd
-from sklearn.feature_selection import f_regression, SelectKBest
+from sklearn.feature_selection import f_classif, SelectKBest
 
 
 def select_features_freg(X_train: pd.DataFrame, y_train: pd.Series,
                          k: int = 13) -> tuple:
     """
-    Selects the top-k features using F-regression scoring.
+    Selects the top-k features using ANOVA F-test for classification.
 
     Args:
         X_train: Training feature matrix.
-        y_train: Training target vector.
+        y_train: Training target vector (binary).
         k: Number of features to select.
 
     Returns:
@@ -23,7 +23,7 @@ def select_features_freg(X_train: pd.DataFrame, y_train: pd.Series,
     # Ensure k does not exceed available features
     k = min(k, X_train.shape[1])
 
-    selector = SelectKBest(score_func=f_regression, k=k)
+    selector = SelectKBest(score_func=f_classif, k=k)
     selector.fit(X_train, y_train)
 
     # Get selected feature names

@@ -32,6 +32,15 @@ TURKISH_TO_ENGLISH: Dict[str, str] = {
     # Equity
     "özkaynaklar":                                       "Equity",
 
+    # Paid-in Capital (TTK 376 hesabı için)
+    "ödenmiş sermaye":                                   "Paid Capital",
+    "çıkarılmış sermaye":                                "Paid Capital",
+
+    # Legal Reserves (TTK 376 hesabı için)
+    "kardan ayrılan kısıtlanmış yedekler":               "Legal Reserves",
+    "yasal yedekler":                                    "Legal Reserves",
+    "kanuni yedek akçeler":                              "Legal Reserves",
+
     # Retained Earnings
     "geçmiş yıllar kar/zararları":                       "Retained Earnings",
 

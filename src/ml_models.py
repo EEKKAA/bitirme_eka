@@ -58,6 +58,7 @@ def build_model_configs() -> dict:
             eval_metric="logloss",
             verbosity=0,
             n_jobs=1,
+            scale_pos_weight=1,  # tuned via param_grid
         ),
         PARAM_GRIDS["XGBoost"],
     )
