@@ -75,6 +75,34 @@ def winsorize(df: pd.DataFrame, lower: float = 0.01, upper: float = 0.99) -> pd.
     return df_out
 
 
+def impute_from_train(X_train: pd.DataFrame, X_test: pd.DataFrame) -> tuple:
+    """
+    Imputes remaining NaN values using global median from training set only.
+    Prevents data leakage by never using test set statistics.
+
+    Called inside each CV fold AFTER company-level imputation (which is safe
+    under StratifiedGroupKFold since all years of a company are in the same fold).
+
+    Args:
+        X_train: Training feature matrix (may have NaN from company-median gaps).
+        X_test: Test feature matrix.
+
+    Returns:
+        (X_train_imputed, X_test_imputed) — both with zero NaN.
+    """
+    X_train = X_train.copy()
+    X_test = X_test.copy()
+    features = [f for f in CANDIDATE_FEATURES if f in X_train.columns]
+
+    for col in features:
+        if X_train[col].isna().any() or X_test[col].isna().any():
+            train_median = X_train[col].median()
+            X_train[col] = X_train[col].fillna(train_median)
+            X_test[col] = X_test[col].fillna(train_median)
+
+    return X_train, X_test
+
+
 def winsorize_from_train(df_train: pd.DataFrame, df_test: pd.DataFrame,
                          lower: float = 0.01, upper: float = 0.99):
     """
@@ -99,24 +127,37 @@ def winsorize_from_train(df_train: pd.DataFrame, df_test: pd.DataFrame,
 
 def preprocess_data(df: pd.DataFrame) -> pd.DataFrame:
     """
-    Runs the global preprocessing pipeline: imputation only.
-    Winsorization is handled inside CV folds to prevent data leakage.
+    Runs pre-CV preprocessing: company-level median imputation only.
+
+    Company-level imputation is safe under StratifiedGroupKFold because all
+    years of a company stay in the same fold (no cross-fold leakage).
+
+    Global median fallback is NOT applied here — it is handled inside each
+    CV fold via impute_from_train() to prevent test-set leakage.
+
+    Winsorization is also handled inside CV folds.
 
     Args:
         df: Raw dataset containing feature columns.
 
     Returns:
-        Preprocessed dataset (imputed, NOT winsorized).
+        Dataset with company-level imputation applied (may still have NaN).
     """
-    print("  Handling missing values (company-median -> global-median)...")
-    df = handle_missing_values(df)
-
-    # Report remaining missing
+    df_out = df.copy()
     features_present = [f for f in CANDIDATE_FEATURES if f in df.columns]
-    remaining = sum(df[col].isna().sum() for col in features_present)
+
+    # Stage 1 only: Company-level median imputation
+    if "company" in df_out.columns:
+        print("  Handling missing values (company-median only)...")
+        for col in features_present:
+            company_medians = df_out.groupby("company")[col].transform("median")
+            df_out[col] = df_out[col].fillna(company_medians)
+
+    # Report remaining (will be filled inside CV folds with train-only median)
+    remaining = sum(df_out[col].isna().sum() for col in features_present)
     if remaining > 0:
-        print(f"  Warning: {remaining} missing values remain after imputation")
+        print(f"  {remaining} NaN values remain (will be imputed inside CV folds)")
     else:
         print(f"  OK: All {len(features_present)} features have zero missing values")
 
-    return df
+    return df_out

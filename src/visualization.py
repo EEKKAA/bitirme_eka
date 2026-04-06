@@ -190,3 +190,71 @@ def plot_performance_table(cv_results: dict, filename: str = "performance_table.
     plt.tight_layout()
     plt.savefig(PLOTS_DIR / filename, dpi=300, bbox_inches="tight", facecolor='none')
     plt.close()
+
+
+def plot_oof_threshold_analysis(y_true, y_prob, oof_threshold, model_name,
+                                 filename="oof_threshold_analysis.png"):
+    """
+    Plots OOF probability distribution and threshold sensitivity analysis.
+
+    Panel 1: Probability histogram by class (healthy vs distressed)
+    Panel 2: F1 / Precision / Recall vs threshold curve
+
+    Args:
+        y_true: Array of true labels (0/1) from OOF predictions.
+        y_prob: Array of predicted probabilities from OOF predictions.
+        oof_threshold: Optimal threshold found on OOF data.
+        model_name: Name of the best model.
+    """
+    from sklearn.metrics import f1_score, precision_score, recall_score
+
+    fig, axes = plt.subplots(1, 2, figsize=(16, 6))
+
+    # ── Panel 1: Probability Distribution ────────────────────────────────
+    ax1 = axes[0]
+    healthy_probs = y_prob[y_true == 0]
+    distress_probs = y_prob[y_true == 1]
+
+    ax1.hist(healthy_probs, bins=40, alpha=0.6, color=ACCENT_BLUE,
+             label=f"Healthy (n={len(healthy_probs)})", density=True)
+    ax1.hist(distress_probs, bins=40, alpha=0.6, color=ACCENT_RED,
+             label=f"Distressed (n={len(distress_probs)})", density=True)
+    ax1.axvline(oof_threshold, color=ACCENT_GREEN, linestyle='--', linewidth=2,
+                label=f"OOF Threshold = {oof_threshold:.2f}")
+    ax1.axvline(0.5, color=TEXT_MUTED, linestyle=':', linewidth=1,
+                label="Default (0.50)")
+    ax1.set_xlabel("Predicted Probability (Distress)", fontsize=12)
+    ax1.set_ylabel("Density", fontsize=12)
+    ax1.set_title(f"{model_name} - OOF Probability Distribution", fontsize=13)
+    ax1.legend(fontsize=10, loc='upper right')
+
+    # ── Panel 2: Threshold Sensitivity ───────────────────────────────────
+    ax2 = axes[1]
+    thresholds = np.arange(0.10, 0.91, 0.01)
+    f1_scores = []
+    prec_scores = []
+    rec_scores = []
+
+    for t in thresholds:
+        y_pred_t = (y_prob >= t).astype(int)
+        f1_scores.append(f1_score(y_true, y_pred_t, zero_division=0))
+        prec_scores.append(precision_score(y_true, y_pred_t, zero_division=0))
+        rec_scores.append(recall_score(y_true, y_pred_t, zero_division=0))
+
+    ax2.plot(thresholds, f1_scores, color=ACCENT_GREEN, linewidth=2, label="F1")
+    ax2.plot(thresholds, prec_scores, color=ACCENT_BLUE, linewidth=1.5,
+             linestyle='--', label="Precision")
+    ax2.plot(thresholds, rec_scores, color=ACCENT_RED, linewidth=1.5,
+             linestyle='--', label="Recall")
+    ax2.axvline(oof_threshold, color=ACCENT_GREEN, linestyle=':', linewidth=2,
+                alpha=0.7, label=f"Optimal t={oof_threshold:.2f}")
+    ax2.set_xlabel("Decision Threshold", fontsize=12)
+    ax2.set_ylabel("Score", fontsize=12)
+    ax2.set_title(f"{model_name} - Threshold Sensitivity (OOF)", fontsize=13)
+    ax2.legend(fontsize=10)
+    ax2.set_xlim(0.1, 0.9)
+    ax2.set_ylim(0, 1.0)
+
+    plt.tight_layout()
+    plt.savefig(PLOTS_DIR / filename, dpi=300, bbox_inches="tight", facecolor='none')
+    plt.close()

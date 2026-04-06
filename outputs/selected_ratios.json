@@ -1,55 +1,95 @@
 {
-  "model": "Random Forest",
+  "model": "CatBoost",
   "feature_ranking": [
     {
       "rank": 1,
-      "feature": "equity_to_short_term_liabilities",
-      "mean_abs_shap": 0.06056284625524675
+      "feature": "retained_earnings_to_assets",
+      "mean_abs_shap": 4.097802153044613
     },
     {
       "rank": 2,
-      "feature": "quick_x_unemployment",
-      "mean_abs_shap": 0.04915625551772221
+      "feature": "equity_to_assets",
+      "mean_abs_shap": 0.5506928118559888
     },
     {
       "rank": 3,
-      "feature": "equity_to_long_term_liabilities",
-      "mean_abs_shap": 0.034397293611219376
+      "feature": "inflation_rate",
+      "mean_abs_shap": 0.3014400603584665
     },
     {
       "rank": 4,
-      "feature": "short_term_liabilities_to_assets_trend_1yr",
-      "mean_abs_shap": 0.031784898577579455
+      "feature": "working_capital_to_total_assets",
+      "mean_abs_shap": 0.2798128209200021
     },
     {
       "rank": 5,
-      "feature": "cfo_x_interest",
-      "mean_abs_shap": 0.03130999021114337
+      "feature": "equity_to_short_term_liabilities",
+      "mean_abs_shap": 0.2647549605771194
     },
     {
       "rank": 6,
-      "feature": "gp_ltl_x_inflation",
-      "mean_abs_shap": 0.03127416651036634
+      "feature": "unemployment_rate",
+      "mean_abs_shap": 0.25517522521732017
     },
     {
       "rank": 7,
-      "feature": "fixed_assets_to_total_liabilities",
-      "mean_abs_shap": 0.026517702952383555
+      "feature": "credit_growth",
+      "mean_abs_shap": 0.21572821244595752
     },
     {
       "rank": 8,
-      "feature": "asset_turnover",
-      "mean_abs_shap": 0.026083025785433547
+      "feature": "wc_ta_x_credit",
+      "mean_abs_shap": 0.20561146339447284
     },
     {
       "rank": 9,
-      "feature": "quick_ratio",
-      "mean_abs_shap": 0.02358619749102201
+      "feature": "gdp_growth_lag1",
+      "mean_abs_shap": 0.19264356471184876
     },
     {
       "rank": 10,
-      "feature": "gross_profit_to_long_term_liabilities_trend_1yr",
-      "mean_abs_shap": 0.010088907288773057
+      "feature": "log_total_assets",
+      "mean_abs_shap": 0.1652661370219935
+    },
+    {
+      "rank": 11,
+      "feature": "return_on_assets",
+      "mean_abs_shap": 0.13604481307286936
+    },
+    {
+      "rank": 12,
+      "feature": "ebit_to_total_assets",
+      "mean_abs_shap": 0.13597994768574811
+    },
+    {
+      "rank": 13,
+      "feature": "operating_income_to_assets",
+      "mean_abs_shap": 0.13003185203852677
+    },
+    {
+      "rank": 14,
+      "feature": "gross_profitability_ratio",
+      "mean_abs_shap": 0.11017565796898597
+    },
+    {
+      "rank": 15,
+      "feature": "short_term_liabilities_to_assets",
+      "mean_abs_shap": 0.08847446706303906
+    },
+    {
+      "rank": 16,
+      "feature": "cfo_x_interest",
+      "mean_abs_shap": 0.0806315947360021
+    },
+    {
+      "rank": 17,
+      "feature": "stl_ta_x_interest",
+      "mean_abs_shap": 0.07945754163207693
+    },
+    {
+      "rank": 18,
+      "feature": "cfo_to_assets",
+      "mean_abs_shap": 0.07475404477398796
     }
   ]
 }

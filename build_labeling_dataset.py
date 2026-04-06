@@ -45,7 +45,7 @@ from config import (
 
 YEAR_MIN   = 2018
 YEAR_MAX   = 2024
-N_HEALTHY  = 50       # Rastgele seçilecek sağlıklı şirket sayısı
+N_HEALTHY  = 100      # Rastgele seçilecek sağlıklı şirket sayısı
 RANDOM_SEED = 42
 
 
@@ -203,6 +203,18 @@ def main():
     n0 = len(df) - n1
     print(f"  Label=1 (distress) : {n1}")
     print(f"  Label=0 (saglikli) : {n0}")
+
+    # ── 5b) Label smoothing — izole distress yıllarını kaldır ────────────
+    print("\n[4b] Label smoothing (izole yil filtresi)...")
+    before = int(df[TARGET].sum())
+    for company, grp in df.groupby("company"):
+        idx = grp.sort_values("year").index
+        labels = df.loc[idx, TARGET].values
+        for i in range(1, len(labels) - 1):
+            if labels[i] == 1 and labels[i - 1] == 0 and labels[i + 1] == 0:
+                df.loc[idx[i], TARGET] = 0
+    after = int(df[TARGET].sum())
+    print(f"  Smoothing: {before} -> {after} distress ({before - after} izole yil kaldirildi)")
 
     # ── 6) Makro veri birleştir ───────────────────────────────────────────────
     print("\n[5] Makro veriler birlestiriliyor...")

@@ -1,30 +1,33 @@
 """
 Main pipeline — Financial Distress Prediction for BIST Companies.
-Büyükarıkan & Büyükarıkan (2025) methodology.
+Buyukarikan & Buyukarikan (2025) methodology.
 
 Steps:
   1. Load dataset
-  2. Preprocess (imputation + winsorization)
-  3. 10-fold stratified CV (with MinMax, SMOTE, feature selection inside folds)
-  4. Hyperparameter tuning (GridSearchCV inside each fold)
+  2. Preprocess (imputation)
+  3. 10-fold stratified group CV (company-level splits)
+     with MinMax, feature selection, threshold optimization inside folds
+  4. Hyperparameter tuning (RandomizedSearchCV inside each fold)
   5. Model comparison
   6. Best model selection (primary: AUC, secondary: F1)
   7. Retrain best model on full data
   8. SHAP explainability analysis
   9. Save outputs (model .pkl, selected_ratios.json, plots, metrics)
 """
+import sys
 import json
 import joblib
 import pandas as pd
 import numpy as np
 from sklearn.preprocessing import MinMaxScaler
 
+sys.stdout.reconfigure(line_buffering=True)
+
 from config import (
     DATASET_FILENAME, CV_RESULTS_FILENAME, BEST_MODEL_FILENAME,
     SELECTED_RATIOS_FILENAME, PLOTS_DIR,
     CANDIDATE_FEATURES, TARGET, RANDOM_STATE,
     PRIMARY_METRIC, SECONDARY_METRIC, FEATURE_SELECTION_K,
-    SMOTE_THRESHOLD,
 )
 from src.preprocessing import preprocess_data
 from src.ml_models import build_model_configs
@@ -34,25 +37,39 @@ from src.shap_analysis import run_shap_analysis
 from src.visualization import (
     plot_cv_comparison, plot_roc_curve, plot_confusion_matrix,
     plot_feature_importance, plot_performance_table,
+    plot_oof_threshold_analysis,
 )
 
-try:
-    from imblearn.over_sampling import SMOTE
-    SMOTE_AVAILABLE = True
-except ImportError:
-    SMOTE_AVAILABLE = False
+# Redirect output to log file as well
+import io
+
+LOG_FILE = DATASET_FILENAME.parent / "train_log.txt"
 
 
 def main():
+    # Tee output to both console and log file
+    log_f = open(LOG_FILE, "w", encoding="utf-8")
+
+    def tee_print(*args, **kwargs):
+        import builtins
+        builtins.print(*args, **kwargs)
+        kwargs.pop("file", None)
+        print_str = " ".join(str(a) for a in args)
+        log_f.write(print_str + "\n")
+        log_f.flush()
+
+    print = tee_print
+
     print("=" * 65)
     print("  Financial Distress Prediction — BIST Companies")
-    print("  Büyükarıkan & Büyükarıkan (2025) Methodology")
+    print("  Buyukarikan & Buyukarikan (2025) Methodology")
     print("=" * 65)
 
     # ── STEP 1: Load dataset ──────────────────────────────────────────────
     if not DATASET_FILENAME.exists():
         print(f"\nError: Dataset '{DATASET_FILENAME}' not found.")
-        print("Run build_dataset.py first.")
+        print("Run build_labeling_dataset.py first.")
+        log_f.close()
         return
 
     print("\n[Step 1] Loading dataset...")
@@ -67,113 +84,109 @@ def main():
     available_features = [r for r in CANDIDATE_FEATURES if r in df.columns]
     if not available_features:
         print("Error: No feature columns found in dataset.")
+        log_f.close()
         return
 
     if TARGET not in df.columns:
         print(f"Error: Target column '{TARGET}' not found.")
+        log_f.close()
         return
 
     X = df[available_features].copy()
     y = df[TARGET].copy()
+    groups = df["company"].copy() if "company" in df.columns else None
 
     distress_count = int(y.sum())
     healthy_count = len(y) - distress_count
     print(f"  Features: {len(available_features)}")
     print(f"  Distressed: {distress_count} ({distress_count/len(y):.1%})")
     print(f"  Healthy: {healthy_count} ({healthy_count/len(y):.1%})")
+    if groups is not None:
+        print(f"  Companies: {groups.nunique()} (StratifiedGroupKFold)")
 
     # ── STEP 3-5: Cross-validated model training ──────────────────────────
     model_configs = build_model_configs()
+    cv_results = {}
 
-    # Run both modes: without SMOTE and with SMOTE
-    all_cv_results = {}
-    for smote_label, smote_flag in [("No SMOTE", False), ("SMOTE", True)]:
-        print(f"\n{'='*50}")
-        print(f"  MODE: {smote_label}")
-        print(f"{'='*50}")
-        cv_results = {}
-        for model_name, (model, param_grid) in model_configs.items():
-            display_name = f"{model_name}"
-            print(f"\n  --- {display_name} ---")
-            result = cross_validate_model(
-                model, param_grid, X, y,
-                model_name=display_name,
-                force_smote=smote_flag,
-            )
-            cv_results[model_name] = result
+    for model_name, (model, param_grid) in model_configs.items():
+        print(f"\n  --- {model_name} ---")
+        result = cross_validate_model(
+            model, param_grid, X, y,
+            groups=groups,
+            model_name=model_name,
+        )
+        cv_results[model_name] = result
 
-            mean = result["mean_metrics"]
-            std = result["std_metrics"]
-            print(f"\n    Mean Metrics:")
-            for metric in ["accuracy", "precision", "recall", "f1", "auc", "mcc"]:
-                print(f"      {metric:>10s}: {mean[metric]:.4f} +/- {std[metric]:.4f}")
-            print(f"    Best Params: {result['best_params']}")
-
-        all_cv_results[smote_label] = cv_results
+        mean = result["mean_metrics"]
+        std = result["std_metrics"]
+        mean_opt = result["mean_metrics_opt"]
+        print(f"\n    Mean Metrics (t=0.5):")
+        for metric in ["accuracy", "precision", "recall", "f1", "auc", "mcc"]:
+            print(f"      {metric:>10s}: {mean[metric]:.4f} +/- {std[metric]:.4f}")
+        print(f"    Optimized Threshold: {result['optimal_threshold']:.2f}")
+        print(f"    Mean Metrics (opt_t):")
+        for metric in ["accuracy", "precision", "recall", "f1", "auc", "mcc"]:
+            print(f"      {metric:>10s}: {mean_opt[metric]:.4f}")
+        print(f"    Best Params: {result['best_params']}")
 
     # ── Comparison Table ──────────────────────────────────────────────────
-    print("\n" + "=" * 70)
-    print("  SMOTE COMPARISON TABLE")
-    print("=" * 70)
-    print(f"  {'Model':<25s} {'Mode':<12s} {'AUC':>8s} {'F1':>8s} {'MCC':>8s}")
-    print(f"  {'-'*25} {'-'*12} {'-'*8} {'-'*8} {'-'*8}")
-    for mode_label, cv_res in all_cv_results.items():
-        for model_name, result in cv_res.items():
-            m = result["mean_metrics"]
-            print(f"  {model_name:<25s} {mode_label:<12s} "
-                  f"{m['auc']:>8.4f} {m['f1']:>8.4f} {m['mcc']:>8.4f}")
-    print("=" * 70)
+    print("\n" + "=" * 80)
+    print("  MODEL COMPARISON TABLE")
+    print("=" * 80)
+    print(f"  {'Model':<25s} {'AUC':>8s} {'F1':>8s} {'MCC':>8s} "
+          f"{'OOF_F1':>8s} {'OOF_MCC':>8s} {'OOF_t':>6s}")
+    print(f"  {'-'*25} {'-'*8} {'-'*8} {'-'*8} {'-'*8} {'-'*8} {'-'*6}")
+    for model_name, result in cv_results.items():
+        m = result["mean_metrics"]
+        oof = result["oof_metrics"]
+        oof_t = result["oof_threshold"]
+        print(f"  {model_name:<25s} "
+              f"{m['auc']:>8.4f} {m['f1']:>8.4f} {m['mcc']:>8.4f} "
+              f"{oof['f1']:>8.4f} {oof['mcc']:>8.4f} {oof_t:>6.2f}")
+    print("=" * 80)
 
-    # Select best overall (from both modes)
-    best_name = None
-    best_mode = None
-    best_auc = -1
-    best_f1 = -1
-    for mode_label, cv_res in all_cv_results.items():
-        for model_name, result in cv_res.items():
-            auc_val = result["mean_metrics"]["auc"]
-            f1_val = result["mean_metrics"]["f1"]
-            if (auc_val, f1_val) > (best_auc, best_f1):
-                best_auc = auc_val
-                best_f1 = f1_val
-                best_name = model_name
-                best_mode = mode_label
-
-    cv_results = all_cv_results[best_mode]
+    # Select best model (primary: AUC, secondary: F1)
+    best_name = max(cv_results, key=lambda k: (
+        cv_results[k]["mean_metrics"]["auc"],
+        cv_results[k]["mean_metrics"]["f1"]
+    ))
     best_result = cv_results[best_name]
-    print(f"\n  Best: {best_name} ({best_mode})")
+    print(f"\n  Best: {best_name}")
     print(f"    AUC: {best_result['mean_metrics']['auc']:.4f}")
     print(f"    F1:  {best_result['mean_metrics']['f1']:.4f}")
+    print(f"    OOF Threshold: {best_result['oof_threshold']:.2f}")
+    print(f"    OOF F1: {best_result['oof_metrics']['f1']:.4f}")
+    print(f"    OOF MCC: {best_result['oof_metrics']['mcc']:.4f}")
 
     # ── STEP 6: Save CV results ───────────────────────────────────────────
     print("\n[Step 6] Saving cross-validation results...")
     cv_rows = []
-    for mode_label, cv_res in all_cv_results.items():
-        for model_name, result in cv_res.items():
-            row = {"Model": model_name, "SMOTE": mode_label}
-            for m in ["accuracy", "precision", "recall", "f1", "auc", "mcc"]:
-                row[f"{m}_mean"] = result["mean_metrics"][m]
-                row[f"{m}_std"] = result["std_metrics"][m]
-            row["best_params"] = json.dumps(result["best_params"])
-            cv_rows.append(row)
-
+    for model_name, result in cv_results.items():
+        row = {"Model": model_name}
+        for m in ["accuracy", "precision", "recall", "f1", "auc", "mcc"]:
+            row[f"{m}_mean"] = result["mean_metrics"][m]
+            row[f"{m}_std"] = result["std_metrics"][m]
+            row[f"{m}_opt_mean"] = result["mean_metrics_opt"][m]
+        row["optimal_threshold"] = result["optimal_threshold"]
+        row["oof_threshold"] = result["oof_threshold"]
+        for m in ["accuracy", "precision", "recall", "f1", "auc", "mcc"]:
+            row[f"{m}_oof"] = result["oof_metrics"][m]
+        row["best_params"] = json.dumps(result["best_params"])
+        cv_rows.append(row)
 
     cv_df = pd.DataFrame(cv_rows)
     cv_df.to_csv(CV_RESULTS_FILENAME, index=False)
     print(f"  Saved to {CV_RESULTS_FILENAME}")
 
-    # ── STEP 7: Best model already selected above ───────────────────────────
-    print(f"\n[Step 7] Best model: {best_name} ({best_mode})")
-    print(f"    {PRIMARY_METRIC.upper()}: "
-          f"{best_result['mean_metrics'][PRIMARY_METRIC]:.4f}")
-    print(f"    {SECONDARY_METRIC.upper()}: "
-          f"{best_result['mean_metrics'][SECONDARY_METRIC]:.4f}")
+    # ── STEP 7: Retrain best model on full data ───────────────────────────
+    print(f"\n[Step 7] Retraining {best_name} on full dataset...")
 
-    # ── STEP 8: Retrain best model on full data ───────────────────────────
-    print("\n[Step 8] Retraining best model on full dataset...")
-
-    # Winsorize full data (no leakage concern — retraining on everything)
+    # Impute any remaining NaN with global median (full data — no CV here)
     from src.preprocessing import winsorize
+    for col in X.columns:
+        if X[col].isna().any():
+            X[col] = X[col].fillna(X[col].median())
+
     X_w = winsorize(X)
 
     # Feature selection on full data
@@ -187,15 +200,6 @@ def main():
         columns=sel_features, index=X_selected.index,
     )
 
-    # SMOTE if best mode was SMOTE
-    if best_mode == "SMOTE" and SMOTE_AVAILABLE:
-        smote = SMOTE(random_state=RANDOM_STATE)
-        X_final, y_final = smote.fit_resample(X_scaled, y)
-        print(f"  SMOTE applied (best mode: {best_mode})")
-    else:
-        X_final, y_final = X_scaled, y
-        print(f"  No SMOTE (best mode: {best_mode})")
-
     # Retrain with best hyperparameters
     from sklearn.base import clone
     model_configs_all = build_model_configs()
@@ -203,37 +207,27 @@ def main():
     best_model = clone(base_model)
     best_params = best_result["best_params"]
     best_model.set_params(**best_params)
-    best_model.fit(X_final, y_final)
+    best_model.fit(X_scaled, y)
 
     # Save model
     joblib.dump(best_model, BEST_MODEL_FILENAME)
     print(f"  Model saved to {BEST_MODEL_FILENAME}")
 
-    # ── STEP 9: Visualizations ────────────────────────────────────────────
-    print("\n[Step 9] Generating visualizations...")
+    # ── STEP 8: Visualizations ────────────────────────────────────────────
+    print("\n[Step 8] Generating visualizations...")
 
-    # CV comparison charts for each mode
-    for mode_label, cv_res in all_cv_results.items():
-        suffix = mode_label.replace(" ", "_").lower()
-        plot_cv_comparison(cv_res, filename=f"cv_comparison_{suffix}.png")
-    print("  [OK] CV comparison charts (No SMOTE + SMOTE)")
+    plot_cv_comparison(cv_results, filename="cv_comparison.png")
+    print("  [OK] CV comparison chart")
 
-    # Performance table for all results combined
-    combined_results = {}
-    for mode_label, cv_res in all_cv_results.items():
-        for model_name, result in cv_res.items():
-            combined_results[f"{model_name} ({mode_label})"] = result
-    plot_performance_table(combined_results, filename="performance_table.png")
+    plot_performance_table(cv_results, filename="performance_table.png")
     print("  [OK] Performance table")
 
-    # Feature importance (for tree-based best model)
     plot_feature_importance(
         best_model, sel_features, best_name,
         f"fi_{best_name.replace(' ', '_').lower()}.png"
     )
     print("  [OK] Feature importance")
 
-    # Confusion matrix for the best fold
     best_fold = max(
         best_result["fold_metrics"],
         key=lambda f: f.get("auc", 0)
@@ -245,8 +239,29 @@ def main():
         )
         print("  [OK] Confusion matrix")
 
-    # ── STEP 10: SHAP Analysis ────────────────────────────────────────────
-    print("\n[Step 10] SHAP explainability analysis...")
+    # OOF threshold analysis plot
+    oof_preds = best_result["oof_predictions"]
+    plot_oof_threshold_analysis(
+        oof_preds["y_true"], oof_preds["y_prob"],
+        best_result["oof_threshold"], best_name,
+        f"oof_threshold_{best_name.replace(' ', '_').lower()}.png"
+    )
+    print("  [OK] OOF threshold analysis")
+
+    # OOF confusion matrix (at optimal threshold)
+    from sklearn.metrics import confusion_matrix as cm_func
+    oof_cm = cm_func(
+        oof_preds["y_true"],
+        (oof_preds["y_prob"] >= best_result["oof_threshold"]).astype(int)
+    ).tolist()
+    plot_confusion_matrix(
+        oof_cm, f"{best_name} (OOF t={best_result['oof_threshold']:.2f})",
+        f"cm_oof_{best_name.replace(' ', '_').lower()}.png"
+    )
+    print("  [OK] OOF confusion matrix")
+
+    # ── STEP 9: SHAP Analysis ────────────────────────────────────────────
+    print("\n[Step 9] SHAP explainability analysis...")
     shap_result = run_shap_analysis(
         best_model, X_scaled, sel_features, model_name=best_name
     )
@@ -261,14 +276,19 @@ def main():
     print("\n" + "=" * 65)
     print("  Pipeline Complete!")
     print(f"  Best Model: {best_name}")
-    print(f"  AUC: {best_result['mean_metrics']['auc']:.4f} ± "
+    print(f"  AUC: {best_result['mean_metrics']['auc']:.4f} +/- "
           f"{best_result['std_metrics']['auc']:.4f}")
-    print(f"  F1:  {best_result['mean_metrics']['f1']:.4f} ± "
+    print(f"  F1:  {best_result['mean_metrics']['f1']:.4f} +/- "
           f"{best_result['std_metrics']['f1']:.4f}")
-    print(f"  MCC: {best_result['mean_metrics']['mcc']:.4f} ± "
+    print(f"  MCC: {best_result['mean_metrics']['mcc']:.4f} +/- "
           f"{best_result['std_metrics']['mcc']:.4f}")
+    print(f"  OOF Threshold: {best_result['oof_threshold']:.2f} "
+          f"(F1={best_result['oof_metrics']['f1']:.4f}, "
+          f"MCC={best_result['oof_metrics']['mcc']:.4f})")
     print(f"\n  Outputs saved to: {CV_RESULTS_FILENAME.parent}")
     print("=" * 65)
+
+    log_f.close()
 
 
 if __name__ == "__main__":
