@@ -6,7 +6,7 @@ Pipeline:
   2. Calculate financial ratios
   3. Assign distress labels (bankruptcy year + all preceding years)
   4. Merge macroeconomic indicators (current year only — no lags)
-  5. Create 18 interaction features (micro × macro)
+  5. Create 11 interaction features (micro × macro)
   6. Remove excluded companies with no usable data
   7. Generate data profiling report
 """
@@ -18,7 +18,7 @@ from src.ratio_calculator import calculate_ratios
 from src.interaction_features import create_interaction_features
 from config import (
     LABELS_FILENAME, MACRO_DATA_FILENAME,
-    MACRO_FEATURES, EXCLUDED_COMPANIES,
+    MACRO_FEATURES, MACRO_LAG2_VARS, EXCLUDED_COMPANIES,
     CANDIDATE_RATIOS, CANDIDATE_FEATURES, TARGET,
     OUTPUTS_DIR,
 )
@@ -46,10 +46,16 @@ def get_bankruptcy_labels() -> pd.DataFrame:
 
 def get_macro_data() -> pd.DataFrame:
     """
-    Loads macroeconomic data (current year only — lag variables removed).
+    Loads macroeconomic data and enriches it with year-over-year trend
+    (delta) features for key macro indicators.
+
+    Trend features (Δt = t − t-1) capture the *direction* of macro change,
+    which Campbell, Hilscher & Szilagyi (2008) show is as informative as
+    the level itself.  usdtry_change is already a raw change variable, so
+    it is excluded from the diff computation.
 
     Returns:
-        pd.DataFrame with original macro columns.
+        pd.DataFrame with original macro columns + trend columns.
     """
     if not MACRO_DATA_FILENAME.exists():
         print("No macro data found.")
@@ -62,6 +68,20 @@ def get_macro_data() -> pd.DataFrame:
         return pd.DataFrame(columns=["year"])
 
     macro_df = macro_df.sort_values("year").reset_index(drop=True)
+
+    # ── Year-over-year change (trend) features ────────────────────────────
+    # usdtry_change already represents a change variable — skip it.
+    trend_vars = [
+        "gdp_growth",
+        "inflation_rate",
+        "interest_rate",
+        "credit_growth",
+        "unemployment_rate",
+    ]
+    for var in trend_vars:
+        if var in macro_df.columns:
+            macro_df[f"{var}_change"] = macro_df[var].diff()
+
     return macro_df
 
 
@@ -146,7 +166,7 @@ def build_dataset(root_folder: Path) -> pd.DataFrame:
     3. Remove excluded companies (BIMEKS, EGELYH, MENSA)
     4. Assign distress labels
     5. Merge macroeconomic indicators (current year)
-    6. Create 18 interaction features (micro × macro)
+    6. Create 11 interaction features (micro × macro)
     7. Remove rows where Total Assets = 0 (ratios undefined)
     8. Generate data profiling report
 
@@ -184,50 +204,17 @@ def build_dataset(root_folder: Path) -> pd.DataFrame:
         df = df.merge(labels_df, on="company", how="left")
 
         if "bankruptcy_year" in df.columns:
-
-            # ── (A) Olay penceresi: T, T-1, T-2 ─────────────────────────────
+            # Label all years up to and including bankruptcy_year as distressed (1).
+            # No T-3 window — full distress history retained per company.
             is_distressed = df["bankruptcy_year"].notna()
-            label_event = (
-                is_distressed
-                & (df["year"] >= df["bankruptcy_year"] - 2)
-                & (df["year"] <= df["bankruptcy_year"])
-            )
+            in_or_before = df["year"] <= df["bankruptcy_year"]
+            df[TARGET] = (is_distressed & in_or_before).astype(int)
 
-            # ── (B) TTK 376/2 ─────────────────────────────────────────────────
-            # Şart: birikmiş zarar ≥ 2/3 × (ödenmiş sermaye + kanuni yedek)
-            def _col(name):
-                return df[name].fillna(0) if name in df.columns else pd.Series(0.0, index=df.index)
-
-            paid_cap  = _col("Paid Capital")
-            legal_res = _col("Legal Reserves")
-            ret_earn  = _col("Retained Earnings")
-            equity    = _col("Equity")
-
-            capital_base     = paid_cap + legal_res          # ÖdenmişSermaye + KanuniYedek
-            accumulated_loss = (-ret_earn).clip(lower=0)     # Birikmiş zarar (≥0)
-
-            label_376_2 = (
-                (ret_earn < 0)
-                & (capital_base > 0)
-                & (accumulated_loss >= (2 / 3) * capital_base)
-            )
-
-            # ── (C) TTK 376/3: borca batıklık (özkaynak < 0) ─────────────────
-            label_376_3 = equity < 0
-
-            # ── Birleşik etiket ───────────────────────────────────────────────
-            # T-2 öncesi geçmiş yıllar silinmez, 0 olarak kalır.
-            df[TARGET] = (label_event | label_376_2 | label_376_3).astype(int)
+            n_labeled = int(df[TARGET].sum())
+            print(f"  Distress labels assigned: {n_labeled} rows "
+                  f"({n_labeled / len(df):.1%})")
 
             df = df.drop(columns=["bankruptcy_year"])
-
-            total_1 = int(df[TARGET].sum())
-            print(f"  Distress labels assigned:")
-            print(f"    (A) Event window (T to T-2) : {int(label_event.sum()):>5} obs")
-            print(f"    (B) TTK 376/2               : {int(label_376_2.sum()):>5} obs")
-            print(f"    (C) TTK 376/3               : {int(label_376_3.sum()):>5} obs")
-            print(f"    Total label=1 (union)       : {total_1:>5} obs")
-            print(f"    Total label=0               : {len(df) - total_1:>5} obs")
         else:
             df[TARGET] = df["company"].isin(
                 labels_df["company"]
@@ -236,25 +223,38 @@ def build_dataset(root_folder: Path) -> pd.DataFrame:
         print("No external labels found. Assigning default 0 to bankruptcy_label.")
         df[TARGET] = 0
 
-    # ── Step 5: Merge macro indicators (current year and lag-1) ─────────
+    # ── Step 5: Merge macro indicators (current, lag-1, lag-2) ──────────
+    # Temporal enrichment per academic literature:
+    #   Current (t)  : Shumway (2001), Campbell et al. (2008)
+    #   Lag-1 (t-1)  : Shumway (2001), Duffie et al. (2007)
+    #   Lag-2 (t-2)  : Duffie et al. (2007) — GDP/interest/inflation take
+    #                  2 years to fully appear in company balance sheets
+    #   Trend (Δt)   : Campbell et al. (2008) — level + direction together
     macro_df = get_macro_data()
     if not macro_df.empty and "year" in macro_df.columns:
-        print("Merging macroeconomic indicators (current and lag-1)...")
-        # Create lag-1 dataset by shifting year forward by 1
+        print("Merging macroeconomic indicators (current, lag-1, lag-2 + trends)...")
+
+        # --- Lag-1: all macro columns (including trend features) ---
         macro_lag1 = macro_df.copy()
         macro_lag1["year"] = macro_lag1["year"] + 1
-        
-        # Rename columns to avoid collisions
-        lag_rename = {col: f"{col}_lag1" for col in macro_lag1.columns if col != "year"}
-        macro_lag1 = macro_lag1.rename(columns=lag_rename)
-        
-        df = df.merge(macro_df, on="year", how="left")
+        lag1_rename = {col: f"{col}_lag1" for col in macro_lag1.columns if col != "year"}
+        macro_lag1 = macro_lag1.rename(columns=lag1_rename)
+
+        # --- Lag-2: key variables only (GDP, interest, inflation) ---
+        lag2_cols = ["year"] + [v for v in MACRO_LAG2_VARS if v in macro_df.columns]
+        macro_lag2 = macro_df[lag2_cols].copy()
+        macro_lag2["year"] = macro_lag2["year"] + 2
+        lag2_rename = {col: f"{col}_lag2" for col in macro_lag2.columns if col != "year"}
+        macro_lag2 = macro_lag2.rename(columns=lag2_rename)
+
+        df = df.merge(macro_df,   on="year", how="left")
         df = df.merge(macro_lag1, on="year", how="left")
+        df = df.merge(macro_lag2, on="year", how="left")
     else:
         print("No macro data found. Proceeding without macroeconomic features.")
 
     # ── Step 6: Create 18 interaction features ─────────────────────────
-    print("Creating 18 interaction features (micro x macro)...")
+    print("Creating 11 interaction features (micro x macro)...")
     df = create_interaction_features(df)
 
     # ── Step 7: Remove rows where Total Assets = 0 ───────────────────────

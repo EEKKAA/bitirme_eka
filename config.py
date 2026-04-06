@@ -18,10 +18,11 @@ os.makedirs(OUTPUTS_DIR, exist_ok=True)
 os.makedirs(PLOTS_DIR, exist_ok=True)
 
 # ── File paths ────────────────────────────────────────────────────────────
-DATASET_FILENAME = OUTPUTS_DIR / "dataset_final.csv"
+DATASET_FILENAME = OUTPUTS_DIR / "dataset.csv"
 CV_RESULTS_FILENAME = OUTPUTS_DIR / "cv_results.csv"
 BEST_MODEL_FILENAME = OUTPUTS_DIR / "financial_distress_model.pkl"
 SELECTED_RATIOS_FILENAME = OUTPUTS_DIR / "selected_ratios.json"
+THRESHOLD_FILENAME = OUTPUTS_DIR / "threshold_config.json"
 LABELS_FILENAME = RAW_DATA_DIR / "bankruptcy_labels.csv"
 MACRO_DATA_FILENAME = RAW_DATA_DIR / "macro_data.csv"
 
@@ -50,48 +51,37 @@ REQUIRED_FINANCIAL_ITEMS = [
     "Admin Expense",
     "RD Expense",
     "CFO",
-    "Paid Capital",       # TTK 376 hesabı: Ödenmiş Sermaye
-    "Legal Reserves",     # TTK 376 hesabı: Kanuni Yedek Akçe
 ]
 
-# ── Selected financial ratios (Buyukarikan & Buyukarikan 2025 — 22 ratios) ──
-# 17 from paper (redundant pairs removed) + 5 solvency/cash flow ratios
-# Redundant pairs removed after correlation analysis:
-#   debt_ratio (r=1.0 with equity_to_assets)
-#   working_capital_to_net_sales (outlier-prone, WC/TA already present)
-#   inventories_to_current_assets (r=0.816 with inventories_to_total_assets)
+# ── Selected financial ratios (Büyükarıkan & Büyükarıkan 2025 + Literature Substs) ─
+# 14 ratios in 4 categories
 CANDIDATE_RATIOS = [
-    # Capital structure (6)
-    "short_term_liabilities_to_assets", # F7:  Current Liabilities / Total Assets
-    "equity_to_assets",                 # F4:  Equity / Total Assets
-    "equity_to_short_term_liabilities", # F18: Equity / Current Liabilities
-    "equity_to_long_term_liabilities",  # F19: Equity / Long-Term Liabilities
-    "fixed_assets_to_total_liabilities",# F16: Non-Current Assets / Total Liabilities
-    "gross_profit_to_long_term_liabilities", # F15: Gross Profit / Long-Term Liabilities
+    # Capital structure (7)
+    "short_term_liabilities_to_assets",      # Current liabilities / Total assets
+    "debt_ratio",                            # Total liabilities / Total assets  [NEW]
+    "equity_to_assets",                      # Equity / Total assets
+    "equity_to_short_term_liabilities",      # Equity / Current liabilities
+    "equity_to_long_term_liabilities",       # Equity / Long-term liabilities
+    "fixed_assets_to_total_liabilities",     # Non-current assets / Total liabilities
+    "gross_profit_to_long_term_liabilities", # Gross profit / Long-term liabilities
 
-    # Liquidity (3)
-    "current_assets_to_total_liabilities",  # F17: Current Assets / Total Liabilities
-    "quick_ratio",                          # F0:  (CA - Inventory) / CL
-    "working_capital_to_total_assets",      # F2:  (CA - CL) / Total Assets
+    # Liquidity (5)
+    "current_assets_to_total_liabilities",   # Current assets / Total liabilities
+    "quick_ratio",                           # (CA - Inventory) / Current liabilities
+    "working_capital_to_total_assets",       # (CA - CL) / Total assets
+    "working_capital_to_net_sales",          # (CA - CL) / Revenue  [NEW]
+    "inventories_to_current_assets",         # Inventory / Current assets  [NEW]
+    "inventories_to_total_assets",           # Inventory / Total assets  [NEW]
 
-    # Profitability (5)
-    "return_on_assets",                # F8:  Net Income / Total Assets
-    "gross_profitability_ratio",       # F9:  Gross Profit / Revenue
-    "operating_income_to_assets",      # F14: Operating Income / Total Assets
-    "ebit_to_current_liabilities",     # F10: EBIT / Current Liabilities
-    "net_operating_profit_margin",     # F13: Operating Income / Revenue
+    # Profitability (4)
+    "operating_income_to_assets",            # Operating income / Total assets
+    "return_on_assets",                      # Net income / Total assets  [NEW]
+    "ebit_to_current_liabilities",           # EBIT / Current liabilities
+    "net_operating_profit_margin",           # Operating income / Revenue
 
-    # Activity (3)
-    "sales_to_current_assets",         # F6:  Revenue / Current Assets
-    "asset_turnover",                  # F5:  Revenue / Total Assets
-    "inventories_to_total_assets",     # F12: Inventory / Total Assets
-
-    # Solvency & Cash Flow (5) — Resilience + Altman Z-Score variables
-    "cfo_to_assets",                   # CFO / Total Assets — operational cash generation
-    "retained_earnings_to_assets",     # RE / Total Assets — Altman X2: cumulative profitability
-    "interest_coverage",               # EBIT / Interest Expense — debt service capacity
-    "ebit_to_total_assets",            # EBIT / Total Assets — Altman X3: earning power
-    "equity_to_total_liabilities",     # Equity / Total Liabilities — Altman X4: solvency
+    # Activity (2)
+    "sales_to_current_assets",               # Revenue / Current assets
+    "asset_turnover",                        # Revenue / Total assets
 ]
 
 # ── Companies to exclude (no usable financial data) ──────────────────────
@@ -113,6 +103,23 @@ MACRO_FEATURES = [
 # ── Macroeconomic indicators (Lag-1) ──────────────────────────────────────
 MACRO_LAG_FEATURES = [f"{col}_lag1" for col in MACRO_FEATURES]
 
+# ── Macroeconomic trend features (year-over-year Δ) ───────────────────────
+# Campbell, Hilscher & Szilagyi (2008): level + direction of change together
+# provide stronger signal than level alone. usdtry_change already exists.
+MACRO_TREND_FEATURES = [
+    "gdp_growth_change",       # GDP momentum (acceleration/deceleration)
+    "inflation_rate_change",   # Inflation shock direction
+    "interest_rate_change",    # Rate hike/cut signal
+    "credit_growth_change",    # Credit supply shift
+    "unemployment_rate_change", # Labour market direction
+]
+
+# ── Macroeconomic lag-2 features (key variables only) ─────────────────────
+# Duffie, Saita & Wang (2007): GDP/interest/inflation effects on firm
+# balance sheets can take up to 2 years to fully materialise.
+MACRO_LAG2_VARS = ["gdp_growth", "interest_rate", "inflation_rate"]
+MACRO_LAG2_FEATURES = [f"{col}_lag2" for col in MACRO_LAG2_VARS]
+
 # ── Trend (Momentum) Features ─────────────────────────────────────────────
 TREND_FEATURES = [
     "operating_income_to_assets_trend_1yr",
@@ -121,49 +128,55 @@ TREND_FEATURES = [
     "gross_profit_to_long_term_liabilities_trend_1yr"
 ]
 
-# ── Interaction features v5: 3 micro × macro terms ─────────────────────────
-# Reduced from 11 to 3 after correlation analysis:
-#   8 interactions removed (r>0.85 with base ratio due to macro having only
-#   7 unique values per year, making interaction ≈ scaled copy of base ratio)
-# Kept only interactions with lower base-ratio correlation and higher SHAP:
+# ── Interaction features v5: 11 micro × macro terms ────────────────────────
+# SHAP-validated + literature-supported + academically strengthened (v5 revision)
+# REMOVED (v5): fixed_assets_x_interest (corr +0.044), quick_x_unemployment
+#               (corr +0.006), equity_stl_x_interest (corr -0.030)
+# ADDED   (v5): roa_x_gdp (Beaver 1966, Altman 1968), debt_ratio_x_interest
+#               (Shumway 2001, Campbell 2008), roa_x_inflation (TR macro context)
 INTERACTION_FEATURES = [
-    "stl_ta_x_interest",         # short_term_liabilities_to_assets × interest_rate — liquidity/leverage cost
-    "wc_ta_x_credit",            # working_capital_to_total_assets × credit_growth  — liquidity crunch
-    "cfo_x_interest",            # (CFO/TA) × interest_rate                         — cash flow vs. int burden
+    "stl_ta_x_interest",         # short_term_liabilities_to_assets × int  — liquidity/leverage cost
+    "oi_ta_x_unemployment",      # operating_income_to_assets × unemp      — demand collapse risk
+    "gp_ltl_x_inflation",        # gross_profit_to_long_term_liab × inf    — real debt service capacity
+    "margin_x_usdtry",           # net_op_profit_margin × usdtry_change    — FX margin impact (TR)
+    "turnover_x_gdp",            # asset_turnover × gdp_growth             — cyclical efficiency
+    "roa_x_gdp",                 # return_on_assets × gdp_growth           — profitability cycle risk
+    "debt_ratio_x_interest",     # debt_ratio × interest_rate              — total leverage cost
+    "roa_x_inflation",           # return_on_assets × inflation_rate       — real profitability erosion
+    "wc_ta_x_credit",            # working_capital_to_total_assets × cred  — liquidity crunch
+    "cfo_x_interest",            # (CFO/TA) × interest_rate                — cash flow vs. int burden
+    "log_assets_x_gdp",          # log(Total Assets) × gdp_growth          — firm size cyclicality
 ]
 
-# ── Direct macro main effects (literature-supported subset) ──────────
-# Reduced from 6 to 4 after correlation analysis:
-#   usdtry_change removed (r=0.959 with gdp_growth_lag1)
-#   industrial_prod_growth_lag1 removed (r=0.954 with gdp_growth_lag1)
-SELECTED_MACRO_DIRECT = [
-    "inflation_rate",              # Price instability (Tinoco & Wilson 2013)
-    "credit_growth",               # Bank financing availability
-    "unemployment_rate",           # Demand-side weakness
-    "gdp_growth_lag1",             # Lagged economic cycle
-]
-
-# ── Auxiliary features ───────────────────────────────────────────────
-AUXILIARY_FEATURES = [
-    "is_first_year",       # Binary: 1 if company's first year in panel (trend imputation flag)
-    "log_total_assets",    # Firm size control (log scale)
-]
-
-# Combined feature set: ratios + trends + interactions + macro + auxiliary
-CANDIDATE_FEATURES = (CANDIDATE_RATIOS + TREND_FEATURES + INTERACTION_FEATURES
-                      + SELECTED_MACRO_DIRECT + AUXILIARY_FEATURES)
+# Full feature pool — combined F-classif + mutual-info selects top-20 inside each fold.
+# Pool = financial ratios + micro trends + interactions + macro (current + lag-1 + lag-2 + Δ trends)
+# Literature basis: Shumway (2001), Duffie et al. (2007), Campbell et al. (2008)
+CANDIDATE_FEATURES = (
+    CANDIDATE_RATIOS          # 18 financial ratios
+    + TREND_FEATURES          # 4 micro momentum features
+    + INTERACTION_FEATURES    # 11 micro × macro interaction terms
+    + MACRO_FEATURES          # 9 current-year macro indicators
+    + MACRO_LAG_FEATURES      # 9 lag-1 macro indicators
+    + MACRO_TREND_FEATURES    # 5 macro year-over-year change (Δt) — Campbell 2008
+    + MACRO_LAG2_FEATURES     # 3 lag-2 macro (GDP, interest, inflation) — Duffie 2007
+                              # Total: 59 candidates → top-20 selected per fold
+)
 
 TARGET = "bankruptcy_label"
 
 # ── Feature selection ─────────────────────────────────────────────────────
 FEATURE_SELECTION_METHOD = "f_classif"
-FEATURE_SELECTION_K = 18   # Select top 18 features from 35-feature pool via f_classif
+FEATURE_SELECTION_K = 20   # Top-20 per Büyükarıkan & Büyükarıkan (2025) Scenario 2
 
 # ── Class imbalance ───────────────────────────────────────────────────────
-SMOTE_THRESHOLD = 0.60     # Apply SMOTE if distress ratio > 60%
+SMOTE_THRESHOLD = 0.40     # Apply SMOTE if distress ratio < 40% (minority class)
 
 # ── Cross-validation ──────────────────────────────────────────────────────
-CV_FOLDS = 10
+# Outer CV: temporal walk-forward (expanding window, 5 folds: test years 2020-2024)
+# Inner CV: stratified k-fold for hyperparameter tuning (on training data only)
+CV_FOLDS = 5          # inner-CV folds for hyperparameter search
+INNER_CV_FOLDS = 5    # alias used by stacking inner loop
+TEMPORAL_MIN_TRAIN_YEARS = 2   # minimum years in training before first test fold
 RANDOM_STATE = 42
 
 # ── Hyperparameter grids ──────────────────────────────────────────────────
@@ -173,40 +186,85 @@ PARAM_GRIDS = {
         "penalty": ["l2"],
     },
     "Random Forest": {
-        "n_estimators": [200, 500],
-        "max_depth": [5, 10],
-        "min_samples_leaf": [1, 3],
+        "n_estimators": [100, 300],
+        "max_depth": [5, 10, None],
+        "min_samples_split": [2, 5],
+        "min_samples_leaf": [1, 2],
     },
     "XGBoost": {
-        "n_estimators": [200, 500],
-        "max_depth": [4, 6],
-        "learning_rate": [0.03, 0.1],
-        "subsample": [0.8],
-        "colsample_bytree": [0.8],
-        "scale_pos_weight": [1, 1.7],
-        "reg_alpha": [0, 0.1],
-        "reg_lambda": [1, 3],
+        "n_estimators": [100, 300],
+        "max_depth": [3, 5, 7],
+        "learning_rate": [0.05, 0.1],
+        "subsample": [0.8, 1.0],
+        "colsample_bytree": [0.8, 1.0],
+        "min_child_weight": [1, 5],
     },
     "CatBoost": {
-        "iterations": [300, 500, 800],
+        "iterations": [200, 500],
         "depth": [4, 6, 8],
-        "learning_rate": [0.01, 0.03, 0.1],
-        "l2_leaf_reg": [1, 3, 5],
+        "learning_rate": [0.03, 0.1],
     },
     "LightGBM": {
-        "n_estimators": [200, 500],
-        "max_depth": [4, 6],
-        "learning_rate": [0.03, 0.1],
+        "n_estimators": [100, 300],
+        "max_depth": [3, 5, 7],
+        "learning_rate": [0.05, 0.1],
         "num_leaves": [31, 63],
         "min_child_samples": [10, 20],
-        "subsample": [0.8],
-        "reg_alpha": [0, 0.1],
-        "reg_lambda": [1, 3],
+        "subsample": [0.8, 1.0],
     },
 }
 
-# ── RandomizedSearchCV settings ──────────────────────────────────────
-RANDOMIZED_N_ITER = 20  # Number of random combinations to try per model
+# ── Optuna hyperparameter search spaces ───────────────────────────────────
+# Used instead of PARAM_GRIDS when Optuna is available.
+# OptunaSearchCV accepts optuna.distributions objects.
+# N_OPTUNA_TRIALS: number of TPE trials per outer fold per model.
+# Wider continuous ranges replace the coarse discrete grids.
+N_OPTUNA_TRIALS = 50
+
+try:
+    from optuna.distributions import (
+        FloatDistribution, IntDistribution, CategoricalDistribution,
+    )
+
+    OPTUNA_PARAM_SPACES = {
+        "Logistic Regression": {
+            "C": FloatDistribution(1e-3, 1e2, log=True),
+        },
+        "Random Forest": {
+            "n_estimators":      IntDistribution(100, 500),
+            "max_depth":         CategoricalDistribution([5, 8, 10, None]),
+            "min_samples_split": IntDistribution(2, 10),
+            "min_samples_leaf":  IntDistribution(1, 5),
+        },
+        "XGBoost": {
+            "n_estimators":     IntDistribution(100, 500),
+            "max_depth":        IntDistribution(3, 8),
+            "learning_rate":    FloatDistribution(0.01, 0.3, log=True),
+            "subsample":        FloatDistribution(0.6, 1.0),
+            "colsample_bytree": FloatDistribution(0.6, 1.0),
+            "min_child_weight": IntDistribution(1, 10),
+            "gamma":            FloatDistribution(0.0, 1.0),
+        },
+        "CatBoost": {
+            "iterations":    IntDistribution(200, 800),
+            "depth":         IntDistribution(4, 8),
+            "learning_rate": FloatDistribution(0.01, 0.3, log=True),
+            "l2_leaf_reg":   FloatDistribution(1.0, 10.0),
+        },
+        "LightGBM": {
+            "n_estimators":      IntDistribution(100, 500),
+            "max_depth":         IntDistribution(3, 8),
+            "learning_rate":     FloatDistribution(0.01, 0.3, log=True),
+            "num_leaves":        IntDistribution(20, 100),
+            "min_child_samples": IntDistribution(5, 30),
+            "subsample":         FloatDistribution(0.6, 1.0),
+            "colsample_bytree":  FloatDistribution(0.6, 1.0),
+        },
+    }
+    OPTUNA_AVAILABLE = True
+except ImportError:
+    OPTUNA_PARAM_SPACES = {}
+    OPTUNA_AVAILABLE = False
 
 # ── Evaluation metrics ────────────────────────────────────────────────────
 METRICS = ["accuracy", "precision", "recall", "f1", "auc", "mcc"]

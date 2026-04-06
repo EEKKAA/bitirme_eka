@@ -21,12 +21,19 @@ except ImportError:
 from config import RANDOM_STATE, PARAM_GRIDS
 
 
-def build_model_configs() -> dict:
+def build_model_configs(scale_pos_weight: float = 4.0) -> dict:
     """
     Returns a dictionary of {model_name: (model_instance, param_grid)}.
 
     Each model is configured with class_weight / scale_pos_weight
-    to handle imbalanced classes by default.
+    to handle imbalanced classes.
+
+    Args:
+        scale_pos_weight: Ratio of negative to positive samples in the
+            training set (n_neg / n_pos).  Used by XGBoost, which does not
+            support sklearn's class_weight='balanced'.  Defaults to 4.0
+            (≈ 417/104 for the BIST dataset); pass the value computed from
+            the actual training labels for correctness.
     """
     configs = {}
 
@@ -51,14 +58,14 @@ def build_model_configs() -> dict:
         PARAM_GRIDS["Random Forest"],
     )
 
-    # XGBoost
+    # XGBoost — scale_pos_weight replaces class_weight for gradient boosting
     configs["XGBoost"] = (
         xgb.XGBClassifier(
             random_state=RANDOM_STATE,
             eval_metric="logloss",
             verbosity=0,
             n_jobs=1,
-            scale_pos_weight=1,  # tuned via param_grid
+            scale_pos_weight=scale_pos_weight,
         ),
         PARAM_GRIDS["XGBoost"],
     )

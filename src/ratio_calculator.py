@@ -1,6 +1,6 @@
 """
 Ratio calculator for selected financial distress prediction variables.
-Buyukarikan & Buyukarikan (2025) methodology — 20 ratios in 4 categories.
+Büyükarıkan & Büyükarıkan (2025) methodology — 13 ratios in 4 categories.
 
 Each ratio is safe against division by zero (returns np.nan).
 """
@@ -55,53 +55,39 @@ def calculate_ratios(df: pd.DataFrame) -> pd.DataFrame:
     EBIT = _get(df, "EBIT")
     NI   = _get(df, "Net Income")
     GP   = _get(df, "Gross Profit")
-    CFO  = _get(df, "CFO")
-    RE   = _get(df, "Retained Earnings")
-    IE   = _get(df, "Interest Expense")
 
     TL   = TA - EQ                          # Total Liabilities
     WC   = CA - CL                          # Working Capital
     QA   = CA - INV                         # Quick Assets
 
-    # ── CAPITAL STRUCTURE (6) ─────────────────────────────────────────────
-    df["debt_ratio"]                        = _sd(TL, TA)           # Feature 3
-    df["short_term_liabilities_to_assets"]  = _sd(CL, TA)          # Feature 7
-    df["equity_to_assets"]                  = _sd(EQ, TA)           # Feature 4
-    df["equity_to_short_term_liabilities"]  = _sd(EQ, CL)          # Feature 18
-    df["equity_to_long_term_liabilities"]   = _sd(EQ, LTL)         # Feature 19
-    df["fixed_assets_to_total_liabilities"] = _sd(NCA, TL)         # Feature 16
-    df["gross_profit_to_long_term_liabilities"] = _sd(GP, LTL)     # Feature 15
+    # ── CAPITAL STRUCTURE (5) ─────────────────────────────────────────────
+    df["short_term_liabilities_to_assets"] = _sd(CL, TA)
+    df["equity_to_assets"]                 = _sd(EQ, TA)
+    df["equity_to_short_term_liabilities"] = _sd(EQ, CL)
+    df["equity_to_long_term_liabilities"]  = _sd(EQ, LTL)
+    df["fixed_assets_to_total_liabilities"]= _sd(NCA, TL)
+    df["gross_profit_to_long_term_liabilities"] = _sd(GP, LTL)
 
-    # ── LIQUIDITY (4) ────────────────────────────────────────────────────
-    df["current_assets_to_total_liabilities"] = _sd(CA, TL)        # Feature 17
-    df["quick_ratio"]                         = _sd(QA, CL)        # Feature 0
-    df["working_capital_to_total_assets"]     = _sd(WC, TA)        # Feature 2
-    df["working_capital_to_net_sales"]        = _sd(WC, REV)       # Feature 1
+    # ── LIQUIDITY (3) ────────────────────────────────────────────────────
+    df["current_assets_to_total_liabilities"] = _sd(CA, TL)
+    df["quick_ratio"]                         = _sd(QA, CL)
+    df["working_capital_to_total_assets"]     = _sd(WC, TA)
 
     # ── PROFITABILITY (5) ─────────────────────────────────────────────────
-    df["return_on_assets"]             = _sd(NI, TA)               # Feature 8
-    df["gross_profitability_ratio"]    = _sd(GP, REV)              # Feature 9
-    df["operating_income_to_assets"]   = _sd(OI, TA)               # Feature 14
-    df["ebit_to_current_liabilities"]  = _sd(EBIT, CL)            # Feature 10
-    df["net_operating_profit_margin"]  = _sd(OI, REV)              # Feature 13
+    df["operating_income_to_assets"]   = _sd(OI, TA)
+    df["ebit_to_current_liabilities"]  = _sd(EBIT, CL)
+    df["net_operating_profit_margin"]  = _sd(OI, REV)
+    df["return_on_assets"]             = _sd(NI, TA)   # Net Income / Total Assets
 
-    # ── ACTIVITY (3) ──────────────────────────────────────────────────────
-    df["sales_to_current_assets"]      = _sd(REV, CA)              # Feature 6
-    df["asset_turnover"]               = _sd(REV, TA)              # Feature 5 (active capital turnover)
-    df["inventories_to_current_assets"]= _sd(INV, CA)              # Feature 11
-    df["inventories_to_total_assets"]  = _sd(INV, TA)              # Feature 12
+    # ── ACTIVITY (2) ──────────────────────────────────────────────────────
+    df["sales_to_current_assets"]      = _sd(REV, CA)
+    df["asset_turnover"]               = _sd(REV, TA)
 
-    # ── SOLVENCY & CASH FLOW (5) — Resilience indicators ────────────────
-    # Includes Altman Z-Score variables X2, X3, X4 and cash flow ratios.
-    df["cfo_to_assets"]                = _sd(CFO, TA)              # Operational cash generation
-    df["retained_earnings_to_assets"]  = _sd(RE, TA)               # Altman X2: cumulative profitability
-    df["interest_coverage"]            = _sd(EBIT, IE)             # Debt service capacity
-    df["ebit_to_total_assets"]         = _sd(EBIT, TA)             # Altman X3: earning power of assets
-    df["equity_to_total_liabilities"]  = _sd(EQ, TL)               # Altman X4: solvency margin
-
-    # ── AUXILIARY FEATURES ──────────────────────────────────────────────────
-    # Firm size control (log scale)
-    df["log_total_assets"] = np.log(TA.replace(0, np.nan).abs())
+    # ── ADDITIONAL RATIOS (4) — Makale Top-20 kapsamı ────────────────────
+    df["debt_ratio"]                      = _sd(TL, TA)   # Total Liabilities / Total Assets
+    df["working_capital_to_net_sales"]    = _sd(WC, REV)  # Working Capital / Revenue
+    df["inventories_to_current_assets"]   = _sd(INV, CA)  # Inventories / Current Assets
+    df["inventories_to_total_assets"]     = _sd(INV, TA)  # Inventories / Total Assets
 
     # ── TREND (MOMENTUM) FEATURES (4) ─────────────────────────────────────
     # Calculate 1-year change (Delta) for the most critical ratios
@@ -118,10 +104,5 @@ def calculate_ratios(df: pd.DataFrame) -> pd.DataFrame:
     for col in trend_cols:
         if col in df.columns:
             df[f"{col}_trend_1yr"] = df.groupby("company")[col].diff(periods=1)
-
-    # Mark first-year observations (trends are imputed, not observed)
-    df["is_first_year"] = (
-        df.groupby("company")["year"].transform("min") == df["year"]
-    ).astype(int)
 
     return df

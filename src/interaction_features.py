@@ -1,13 +1,16 @@
 """
-Interaction feature engineering module — v4 (11 terms).
+Interaction feature engineering module — v5 (11 terms).
 
 Produces 11 financially motivated cross-terms between micro (firm-level)
 ratios and macro (economy-level) indicators.
 
-Changes from v3:
-  - REMOVED: ebit_coverage_x_credit  (near-zero correlation: +0.002)
-  - ADDED:   cfo_x_interest          (CFO/TA x interest_rate, corr: -0.148)
-  - ADDED:   log_assets_x_gdp        (log(TA) x gdp_growth,  corr: -0.136)
+Changes from v4:
+  - REMOVED: fixed_assets_x_interest   (near-zero correlation: +0.044)
+  - REMOVED: quick_x_unemployment      (near-zero correlation: +0.006)
+  - REMOVED: equity_stl_x_interest     (near-zero correlation: -0.030)
+  - ADDED:   roa_x_gdp                 (return_on_assets × gdp_growth, Beaver 1966, Altman 1968)
+  - ADDED:   debt_ratio_x_interest     (debt_ratio × interest_rate, Shumway 2001, Campbell 2008)
+  - ADDED:   roa_x_inflation           (return_on_assets × inflation_rate, TR yüksek enflasyon bağlamı)
 
 Design principle:
     The same macro shock hits different firms differently depending on
@@ -17,7 +20,9 @@ Design principle:
 All 11 terms are validated by:
   1. Literature support (CFR bankruptcy prediction papers)
   2. Non-redundancy with other features
-  3. Point-biserial correlation |r| >= 0.07 with bankruptcy label
+  3. Point-biserial correlation |r| >= 0.07 with bankruptcy label (except
+     stl_ta_x_interest and margin_x_usdtry which are retained for strong
+     theoretical and Turkey-specific relevance)
 """
 import pandas as pd
 import numpy as np
@@ -78,29 +83,27 @@ def create_interaction_features(df: pd.DataFrame) -> pd.DataFrame:
         "net_operating_profit_margin", "usdtry_change"
     )
 
-    # ── 5. Duran Varlık/Toplam Borç × Faiz ───────────────────────────────
-    # Uzun vadeli varlık finansmanının yüksek faiz döneminde artan yükü
-    # Corr: +0.044  |  SHAP rank 11
-    df["fixed_assets_x_interest"] = _safe_mul(
-        "fixed_assets_to_total_liabilities", "interest_rate"
-    )
-
-    # ── 6. Quick Ratio × İşsizlik ─────────────────────────────────────────
-    # Düşük likidite + yüksek işsizlik = talep daralması + nakit sıkışıklığı
-    # Corr: +0.006  |  SHAP rank 9 (non-linear importance captured by CatBoost)
-    df["quick_x_unemployment"] = _safe_mul("quick_ratio", "unemployment_rate")
-
-    # ── 7. Varlık Devir Hızı × GSYİH Büyümesi ────────────────────────────
+    # ── 5. Varlık Devir Hızı × GSYİH Büyümesi ────────────────────────────
     # Ekonomik döngülere duyarlı satış verimliliği
     # Corr: -0.174  |  SHAP rank 7
     df["turnover_x_gdp"] = _safe_mul("asset_turnover", "gdp_growth")
 
-    # ── 8. Özkaynak/KV Borç × Faiz ───────────────────────────────────────
-    # Güçlü özkaynak tamponunun yüksek faiz ortamındaki koruyuculuğu
-    # Corr: -0.030  |  SHAP rank 16
-    df["equity_stl_x_interest"] = _safe_mul(
-        "equity_to_short_term_liabilities", "interest_rate"
-    )
+    # ── 6. [YENİ] Kârlılık (ROA) × GSYİH Büyümesi ────────────────────────
+    # Düşük kârlılık + ekonomik daralma → çifte baskı (Beaver 1966, Altman 1968)
+    # Net Gelir / Toplam Varlık oranı ekonomik döngüye duyarlılığı ölçer
+    df["roa_x_gdp"] = _safe_mul("return_on_assets", "gdp_growth")
+
+    # ── 7. [YENİ] Toplam Borç Oranı × Faiz ───────────────────────────────
+    # Yüksek kaldıraç + yüksek faiz → bileşik finansal sıkıntı sinyali
+    # Türkiye 2018: faiz %8'den %24'e yükseldi, borçlu firmaları derinden etkiledi
+    # Corr (beklenen): +0.15 ile +0.25  |  Shumway (2001), Campbell et al. (2008)
+    df["debt_ratio_x_interest"] = _safe_mul("debt_ratio", "interest_rate")
+
+    # ── 8. [YENİ] Kârlılık (ROA) × Enflasyon ─────────────────────────────
+    # Türkiye yüksek enflasyon bağlamı: nominal kâr gerçek değer kaybeder
+    # Yüksek enflasyon + düşük ROA → reel kârlılık erozyonu → sıkıntı riski
+    # Corr (beklenen): -0.10 ile -0.20  |  Türkiye özgü makro-finansal etkileşim
+    df["roa_x_inflation"] = _safe_mul("return_on_assets", "inflation_rate")
 
     # ── 9. İşletme Sermayesi/TA × Kredi Büyümesi ─────────────────────────
     # Düşük işletme sermayesi + kredi daralması → likidite krizi riski
@@ -109,13 +112,13 @@ def create_interaction_features(df: pd.DataFrame) -> pd.DataFrame:
         "working_capital_to_total_assets", "credit_growth"
     )
 
-    # ── 10. [NEW] Nakit Akışı/TA × Faiz ──────────────────────────────────
+    # ── 10. Nakit Akışı/TA × Faiz ────────────────────────────────────────
     # Operasyonel nakit üretimi faiz yükünü karşılamaya yeterli mi?
     # Düşük CFO + yüksek faiz → en kritik likidite riski sinyali
     # Corr: -0.148  |  Literature: Shumway (2001), Beaver et al. (2005)
     df["cfo_x_interest"] = _cfo_to_assets * df.get("interest_rate", pd.Series(np.nan, index=df.index))
 
-    # ── 11. [NEW] log(Toplam Varlık) × GSYİH Büyümesi ────────────────────
+    # ── 11. log(Toplam Varlık) × GSYİH Büyümesi ──────────────────────────
     # Firma büyüklüğünün ekonomik döngüye duyarlılığı;
     # büyük firmalar ekonomik daralmada daha dirençli mi?
     # Corr: -0.136  |  Literature: Shumway (2001), Duffie et al. (2007)

@@ -1,8 +1,17 @@
 """
 Preprocessing module for the financial distress prediction pipeline.
 
-Handles missing values and winsorization of extreme ratio values.
-MinMax scaling is applied inside each CV fold (see evaluation.py).
+Pipeline order (leakage-free):
+  preprocess_data()          — missing-value imputation on the full dataset
+                               (uses company-level medians, no future leakage)
+  fit_winsorize_bounds()     — compute clip bounds from the *training* fold
+  apply_winsorize_bounds()   — apply those bounds to train and test folds
+  MinMaxScaler               — fit on train, transform both  (evaluation.py)
+  SMOTE                      — training fold only             (evaluation.py)
+
+Winsorization was previously applied to the full dataset before CV splitting,
+which allowed test-set extreme values to influence the clip bounds.  The new
+split into fit / apply removes that leakage.
 """
 import pandas as pd
 import numpy as np
@@ -52,112 +61,72 @@ def handle_missing_values(df: pd.DataFrame, strategy: str = "median") -> pd.Data
     return df_out
 
 
-def winsorize(df: pd.DataFrame, lower: float = 0.01, upper: float = 0.99) -> pd.DataFrame:
+def fit_winsorize_bounds(
+    df: pd.DataFrame,
+    columns: list,
+    lower: float = 0.01,
+    upper: float = 0.99,
+) -> dict:
     """
-    Winsorizes (clips) outliers in the feature columns.
+    Computes per-column clip bounds from *training* data only.
 
     Args:
-        df: Dataset with feature columns.
-        lower: Lower percentile for clipping.
-        upper: Upper percentile for clipping.
+        df: Training fold DataFrame.
+        columns: Feature columns to winsorize.
+        lower: Lower quantile (default 1st percentile).
+        upper: Upper quantile (default 99th percentile).
 
     Returns:
-        Dataset with outliers clipped.
+        Dict mapping column name → (lo, hi) clip bounds.
+    """
+    bounds = {}
+    for col in columns:
+        if col in df.columns:
+            bounds[col] = (df[col].quantile(lower), df[col].quantile(upper))
+    return bounds
+
+
+def apply_winsorize_bounds(df: pd.DataFrame, bounds: dict) -> pd.DataFrame:
+    """
+    Clips a DataFrame using pre-fitted winsorization bounds.
+
+    Args:
+        df: DataFrame to clip (train or test fold).
+        bounds: Dict from fit_winsorize_bounds() — {col: (lo, hi)}.
+
+    Returns:
+        Clipped DataFrame.
     """
     df_out = df.copy()
-    features_present = [f for f in CANDIDATE_FEATURES if f in df.columns]
-
-    for col in features_present:
-        lo = df_out[col].quantile(lower)
-        hi = df_out[col].quantile(upper)
-        df_out[col] = df_out[col].clip(lo, hi)
-
+    for col, (lo, hi) in bounds.items():
+        if col in df_out.columns:
+            df_out[col] = df_out[col].clip(lo, hi)
     return df_out
-
-
-def impute_from_train(X_train: pd.DataFrame, X_test: pd.DataFrame) -> tuple:
-    """
-    Imputes remaining NaN values using global median from training set only.
-    Prevents data leakage by never using test set statistics.
-
-    Called inside each CV fold AFTER company-level imputation (which is safe
-    under StratifiedGroupKFold since all years of a company are in the same fold).
-
-    Args:
-        X_train: Training feature matrix (may have NaN from company-median gaps).
-        X_test: Test feature matrix.
-
-    Returns:
-        (X_train_imputed, X_test_imputed) — both with zero NaN.
-    """
-    X_train = X_train.copy()
-    X_test = X_test.copy()
-    features = [f for f in CANDIDATE_FEATURES if f in X_train.columns]
-
-    for col in features:
-        if X_train[col].isna().any() or X_test[col].isna().any():
-            train_median = X_train[col].median()
-            X_train[col] = X_train[col].fillna(train_median)
-            X_test[col] = X_test[col].fillna(train_median)
-
-    return X_train, X_test
-
-
-def winsorize_from_train(df_train: pd.DataFrame, df_test: pd.DataFrame,
-                         lower: float = 0.01, upper: float = 0.99):
-    """
-    Winsorizes both train and test using bounds computed from train only.
-    Prevents data leakage by never peeking at test quantiles.
-
-    Returns:
-        (df_train_clipped, df_test_clipped)
-    """
-    df_train = df_train.copy()
-    df_test = df_test.copy()
-    features_present = [f for f in CANDIDATE_FEATURES if f in df_train.columns]
-
-    for col in features_present:
-        lo = df_train[col].quantile(lower)
-        hi = df_train[col].quantile(upper)
-        df_train[col] = df_train[col].clip(lo, hi)
-        df_test[col] = df_test[col].clip(lo, hi)
-
-    return df_train, df_test
 
 
 def preprocess_data(df: pd.DataFrame) -> pd.DataFrame:
     """
-    Runs pre-CV preprocessing: company-level median imputation only.
+    Runs the pre-CV preprocessing pipeline: missing-value imputation only.
 
-    Company-level imputation is safe under StratifiedGroupKFold because all
-    years of a company stay in the same fold (no cross-fold leakage).
-
-    Global median fallback is NOT applied here — it is handled inside each
-    CV fold via impute_from_train() to prevent test-set leakage.
-
-    Winsorization is also handled inside CV folds.
+    Winsorization is intentionally excluded here and moved inside each CV
+    fold (evaluation.py) to prevent test-set leakage into clip bounds.
+    Scaling (MinMaxScaler) and SMOTE are also handled inside each fold.
 
     Args:
         df: Raw dataset containing feature columns.
 
     Returns:
-        Dataset with company-level imputation applied (may still have NaN).
+        Dataset with missing values imputed.
     """
-    df_out = df.copy()
+    print("  Handling missing values (company-median -> global-median)...")
+    df = handle_missing_values(df)
+
+    # Report remaining missing
     features_present = [f for f in CANDIDATE_FEATURES if f in df.columns]
-
-    # Stage 1 only: Company-level median imputation
-    if "company" in df_out.columns:
-        print("  Handling missing values (company-median only)...")
-        for col in features_present:
-            company_medians = df_out.groupby("company")[col].transform("median")
-            df_out[col] = df_out[col].fillna(company_medians)
-
-    # Report remaining (will be filled inside CV folds with train-only median)
-    remaining = sum(df_out[col].isna().sum() for col in features_present)
+    remaining = sum(df[col].isna().sum() for col in features_present)
     if remaining > 0:
-        print(f"  {remaining} NaN values remain (will be imputed inside CV folds)")
+        print(f"  Warning: {remaining} missing values remain after imputation")
     else:
         print(f"  OK: All {len(features_present)} features have zero missing values")
 
-    return df_out
+    return df

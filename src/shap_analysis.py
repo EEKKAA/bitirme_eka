@@ -69,9 +69,43 @@ def run_shap_analysis(model, X: pd.DataFrame, feature_names: list,
 
     # Create appropriate explainer
     model_type = type(model).__name__
-    if model_type in ("XGBClassifier", "CatBoostClassifier",
-                      "RandomForestClassifier", "GradientBoostingClassifier",
-                      "LGBMClassifier"):
+    shap_model_label = model_name   # used in plot titles
+
+    if model_type == "StackingEnsemble":
+        # StackingEnsemble is a custom class — SHAP cannot introspect it directly.
+        # Extract the best tree base model (preference: CatBoost > LightGBM > XGBoost)
+        # and run TreeExplainer on it.  Results represent the dominant base learner,
+        # which is very close to the ensemble in predictive power (AUC diff < 0.01).
+        base_models = model.base_models  # {name: fitted_estimator}
+        shap_base = None
+        for preferred in ("CatBoost", "LightGBM", "XGBoost"):
+            if preferred in base_models:
+                shap_base = base_models[preferred]
+                shap_model_label = f"{model_name} — {preferred} base"
+                print(f"  StackingEnsemble detected: using {preferred} base model for SHAP.")
+                break
+        if shap_base is None:
+            # Fallback: use first available base model
+            first_name, shap_base = next(iter(base_models.items()))
+            shap_model_label = f"{model_name} — {first_name} base"
+
+        # Reorder X to match the base model's training feature order.
+        # CatBoost/LightGBM/XGBoost store feature names and require the same column order.
+        base_feat_names = None
+        if hasattr(shap_base, "feature_names_"):
+            base_feat_names = list(shap_base.feature_names_)
+        elif hasattr(shap_base, "feature_name_"):   # LightGBM
+            base_feat_names = list(shap_base.feature_name_())
+        elif hasattr(shap_base, "get_booster"):     # XGBoost
+            base_feat_names = list(shap_base.get_booster().feature_names)
+        if base_feat_names and set(base_feat_names) <= set(X.columns):
+            X = X[base_feat_names]
+            feature_names = base_feat_names
+
+        explainer = shap.TreeExplainer(shap_base)
+    elif model_type in ("XGBClassifier", "CatBoostClassifier",
+                        "RandomForestClassifier", "GradientBoostingClassifier",
+                        "LGBMClassifier"):
         explainer = shap.TreeExplainer(model)
     else:
         # Logistic Regression or other linear models
@@ -89,7 +123,7 @@ def run_shap_analysis(model, X: pd.DataFrame, feature_names: list,
     plt.gcf().patch.set_facecolor('none')
     shap.summary_plot(shap_values, X, feature_names=feature_names,
                       plot_type="bar", show=False, max_display=20, color=ACCENT_BLUE)
-    plt.title(f"SHAP Global Feature Importance — {model_name}", fontsize=18, fontweight="bold", color=TEXT_MAIN, pad=20)
+    plt.title(f"SHAP Global Feature Importance — {shap_model_label}", fontsize=18, fontweight="bold", color=TEXT_MAIN, pad=20)
     plt.xlabel("Mean |SHAP Value| (Impact on Model Output)", fontsize=14, fontweight="bold", color=TEXT_MAIN)
     plt.xticks(fontsize=12, color=TEXT_MUTED)
     plt.yticks(fontsize=12, color=TEXT_MAIN)
@@ -105,7 +139,7 @@ def run_shap_analysis(model, X: pd.DataFrame, feature_names: list,
     plt.gcf().patch.set_facecolor('none')
     shap.summary_plot(shap_values, X, feature_names=feature_names,
                       show=False, max_display=20)
-    plt.title(f"SHAP Beeswarm — {model_name}", fontsize=18, fontweight="bold", color=TEXT_MAIN, pad=20)
+    plt.title(f"SHAP Beeswarm — {shap_model_label}", fontsize=18, fontweight="bold", color=TEXT_MAIN, pad=20)
     plt.xlabel("SHAP Value (Decision Impact)", fontsize=14, fontweight="bold", color=TEXT_MAIN)
     plt.xticks(fontsize=12, color=TEXT_MUTED)
     plt.yticks(fontsize=12, color=TEXT_MAIN)

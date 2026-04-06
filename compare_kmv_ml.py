@@ -354,7 +354,9 @@ def main():
         columns=sel_features, index=X_sel.index,
     )
 
-    model_configs = build_model_configs()
+    n_pos = int(y.sum())
+    n_neg = len(y) - n_pos
+    model_configs = build_model_configs(scale_pos_weight=n_neg / n_pos)
     ml_roc_data = {}
 
     # Get best params from CV results

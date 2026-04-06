@@ -1,0 +1,6 @@
+{
+  "model_name": "CatBoost",
+  "mode": "No SMOTE",
+  "oof_threshold": 0.0995,
+  "default_threshold": 0.5
+}
