@@ -9,21 +9,20 @@ from pathlib import Path
 BASE_DIR = Path(__file__).resolve().parent
 DATA_DIR = BASE_DIR / "data"
 RAW_DATA_DIR = DATA_DIR / "raw"
-PROCESSED_DATA_DIR = DATA_DIR / "processed"
+COMPANIES_DIR = RAW_DATA_DIR / "companies"
 OUTPUTS_DIR = BASE_DIR / "outputs"
 PLOTS_DIR = OUTPUTS_DIR / "plots"
 
-os.makedirs(PROCESSED_DATA_DIR, exist_ok=True)
 os.makedirs(OUTPUTS_DIR, exist_ok=True)
 os.makedirs(PLOTS_DIR, exist_ok=True)
 
 # ── File paths ────────────────────────────────────────────────────────────
-DATASET_FILENAME = OUTPUTS_DIR / "dataset.csv"
+DATASET_FILENAME = OUTPUTS_DIR / "dataset_final.csv"
 CV_RESULTS_FILENAME = OUTPUTS_DIR / "cv_results.csv"
 BEST_MODEL_FILENAME = OUTPUTS_DIR / "financial_distress_model.pkl"
 SELECTED_RATIOS_FILENAME = OUTPUTS_DIR / "selected_ratios.json"
 THRESHOLD_FILENAME = OUTPUTS_DIR / "threshold_config.json"
-LABELS_FILENAME = RAW_DATA_DIR / "bankruptcy_labels.csv"
+DISTRESS_LABELS_FILENAME = RAW_DATA_DIR / "dataset_distress_v2.xlsx"
 MACRO_DATA_FILENAME = RAW_DATA_DIR / "macro_data.csv"
 
 # ── Financial items to extract from Excel ─────────────────────────────────

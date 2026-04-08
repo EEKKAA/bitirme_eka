@@ -153,7 +153,7 @@ DISTRESSED_FIRMS = {
 
 
 def load_data():
-    df = pd.read_csv("outputs/dataset.csv")
+    df = pd.read_csv("outputs/dataset_final.csv")
     companies = sorted(df["company"].unique())
     company_df = df.groupby("company").agg(
         years=("year", "count"),

@@ -117,6 +117,11 @@ def run_shap_analysis(model, X: pd.DataFrame, feature_names: list,
     if isinstance(shap_values, list):
         shap_values = shap_values[1]  # class 1 = distress
 
+    # SHAP >=0.45 returns a 3D ndarray (n_samples, n_features, n_classes)
+    # for binary classifiers like RandomForest. Pick the distress class slice.
+    if isinstance(shap_values, np.ndarray) and shap_values.ndim == 3:
+        shap_values = shap_values[:, :, 1]  # class 1 = distress
+
     # ── 1. Global Feature Importance Bar Chart ────────────────────────────
     print("  Generating SHAP global importance plot...")
     plt.figure(figsize=(10, 6))

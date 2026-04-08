@@ -1,15 +1,15 @@
 """
 build_labeling_dataset.py
 =========================
-C:\\Users\\EkA\\Desktop\\labeling\\ klasöründeki düz dosya yapısından
-(TICKER_YEAR.xlsx) yeni bir panel dataset oluşturur.
+data/raw/companies/ altındaki düz dosya yapısından (TICKER_YEAR.xlsx)
+panel dataset oluşturur. Etiketler data/raw/dataset_distress_v2.xlsx'ten gelir.
 
 Strateji:
   - Distressed şirketler : TTK 376 v2'ye göre distress_376=1 olan TÜM şirketler
                             (her şirketin 2018-2024 arası tüm yılları dahil edilir)
   - Sağlıklı şirketler   : 2018-2024 arası HİÇ TTK 376 tetiklememiş şirketler
-                            içinden 7 tam yılı olan ~50 şirket rastgele seçilir
-  - Hedef toplam          : ~1000 gözlem
+                            içinden 7 tam yılı olan 100 şirket rastgele seçilir
+  - Toplam                : 331 şirket × ~7 yıl = 2229 firma-yıl gözlemi
 
 Çıktı: outputs/dataset_final.csv
 """
@@ -24,8 +24,9 @@ import numpy as np
 
 # ── Proje kökünü Python path'ine ekle ─────────────────────────────────────────
 PROJECT_ROOT  = Path(__file__).resolve().parent
-LABELING_DIR  = Path(r"C:\Users\EkA\Desktop\labeling")
-LABELS_V2     = LABELING_DIR / "dataset_distress_v2.xlsx"
+RAW_DIR       = PROJECT_ROOT / "data" / "raw"
+COMPANIES_DIR = RAW_DIR / "companies"
+LABELS_V2     = RAW_DIR / "dataset_distress_v2.xlsx"
 OUTPUT_PATH   = PROJECT_ROOT / "outputs" / "dataset_final.csv"
 
 sys.path.insert(0, str(PROJECT_ROOT))
@@ -106,7 +107,7 @@ def load_flat_companies(folder: Path, company_list: list) -> pd.DataFrame:
     TICKER_YEAR.xlsx formatındaki düz dosya yapısından veri yükler.
 
     Args:
-        folder       : C:\\...\\labeling klasörü
+        folder       : data/raw/companies klasörü
         company_list : yüklenecek ticker listesi
 
     Returns:
@@ -161,7 +162,7 @@ def main():
 
     print(SEP)
     print("  LABELING DATASET BUILDER")
-    print(f"  Kaynak: {LABELING_DIR}")
+    print(f"  Kaynak: {COMPANIES_DIR}")
     print(SEP)
 
     # ── 1) Şirket seçimi ─────────────────────────────────────────────────────
@@ -172,7 +173,7 @@ def main():
 
     # ── 2) Finansal veriyi yükle ──────────────────────────────────────────────
     print("\n[2] Finansal veri yukleniyor...")
-    df = load_flat_companies(LABELING_DIR, all_companies)
+    df = load_flat_companies(COMPANIES_DIR, all_companies)
 
     if df.empty:
         print("Hata: Veri yüklenemedi.")
