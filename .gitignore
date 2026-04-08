@@ -1,10 +1,16 @@
+# Python
 __pycache__/
 *.pyc
 *.pyo
 *.pyd
 .Python
+
+# Virtual environments
 env/
 venv/
+.venv/
+
+# Packaging/testing
 pip-log.txt
 pip-delete-this-directory.txt
 .tox/
@@ -15,6 +21,22 @@ coverage.xml
 *.cover
 .hypothesis/
 .pytest_cache/
+
+# ML training artifacts
 catboost_info/
-outputs/plots/
 *.pkl
+
+# Output artifacts (large / regeneratable)
+outputs/plots/
+
+# Editor / IDE
+.vscode/
+.idea/
+.claude/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Misc
+*.pdf
