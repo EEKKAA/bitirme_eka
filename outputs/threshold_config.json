@@ -1,6 +1,6 @@
 {
-  "model_name": "CatBoost",
+  "model_name": "Random Forest",
   "mode": "No SMOTE",
-  "oof_threshold": 0.0995,
+  "oof_threshold": 0.3055,
   "default_threshold": 0.5
 }

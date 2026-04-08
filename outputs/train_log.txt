@@ -1,166 +1,316 @@
 =================================================================
-  Financial Distress Prediction â€” BIST Companies
-  Buyukarikan & Buyukarikan (2025) Methodology
+  Financial Distress Prediction — BIST Companies
+  Büyükarýkan & Büyükarýkan (2025) Methodology
 =================================================================
 
 [Step 1] Loading dataset...
   Records: 2229
 
 [Step 2] Preprocessing...
-  Features: 35
+  Handling missing values (company-median -> global-median)...
+  OK: All 52 features have zero missing values
+  Features: 52
   Distressed: 649 (29.1%)
   Healthy: 1580 (70.9%)
-  Companies: 331 (StratifiedGroupKFold)
+  XGBoost scale_pos_weight: 2.43
+
+==================================================
+  MODE: No SMOTE
+==================================================
 
   --- Logistic Regression ---
+    SMOTE OFF (distress ratio: 29.12%)
+    CV: Temporal walk-forward (5 folds)
+    Fold  1: AUC=0.8630  F1@0.50=0.6173  MCC=0.4941
+    Fold  2: AUC=0.6949  F1@0.50=0.4120  MCC=0.1902
+    Fold  3: AUC=0.5934  F1@0.50=0.5244  MCC=0.3164
+    Fold  4: AUC=0.6286  F1@0.50=0.2275  MCC=0.1694
+    Fold  5: AUC=0.5992  F1@0.50=0.4485  MCC=0.0318
 
-    Mean Metrics (t=0.5):
-        accuracy: 0.9034 +/- 0.0239
-       precision: 0.8062 +/- 0.0635
-          recall: 0.8697 +/- 0.0557
-              f1: 0.8353 +/- 0.0503
-             auc: 0.9627 +/- 0.0151
-             mcc: 0.7688 +/- 0.0622
-    Optimized Threshold: 0.51
-    Mean Metrics (opt_t):
-        accuracy: 0.8944
-       precision: 0.7955
-          recall: 0.8591
-              f1: 0.8214
-             auc: 0.9627
-             mcc: 0.7521
-    Best Params: {'C': 10, 'penalty': 'l2'}
+    --- Logistic Regression Summary ---
+    Default   (thr=0.50)     : AUC=0.6759  F1=0.4460  Recall=0.5344
+    Optimised (thr=0.27)     : AUC=0.6759  F1=0.5027  Recall=0.8593
+
+    Mean Metrics:
+        accuracy: 0.6212 +/- 0.1230
+       precision: 0.5112 +/- 0.1725
+          recall: 0.5344 +/- 0.2275
+              f1: 0.4460 +/- 0.1299
+             auc: 0.6759 +/- 0.1003
+             mcc: 0.2404 +/- 0.1557
+    Best Params: {'C': 1, 'penalty': 'l2'}
 
   --- Random Forest ---
+    SMOTE OFF (distress ratio: 29.12%)
+    CV: Temporal walk-forward (5 folds)
+    Fold  1: AUC=0.8739  F1@0.50=0.5818  MCC=0.5420
+    Fold  2: AUC=0.8183  F1@0.50=0.5546  MCC=0.4778
+    Fold  3: AUC=0.6625  F1@0.50=0.2125  MCC=0.1926
+    Fold  4: AUC=0.6988  F1@0.50=0.4271  MCC=0.3194
+    Fold  5: AUC=0.6480  F1@0.50=0.4227  MCC=0.1695
 
-    Mean Metrics (t=0.5):
-        accuracy: 0.9165 +/- 0.0336
-       precision: 0.8290 +/- 0.0890
-          recall: 0.8991 +/- 0.0604
-              f1: 0.8595 +/- 0.0613
-             auc: 0.9733 +/- 0.0135
-             mcc: 0.8042 +/- 0.0784
-    Optimized Threshold: 0.49
-    Mean Metrics (opt_t):
-        accuracy: 0.9156
-       precision: 0.8306
-          recall: 0.8947
-              f1: 0.8580
-             auc: 0.9733
-             mcc: 0.8025
-    Best Params: {'max_depth': 10, 'min_samples_leaf': 1, 'n_estimators': 500}
+    --- Random Forest Summary ---
+    Default   (thr=0.50)     : AUC=0.7403  F1=0.4397  Recall=0.3466
+    Optimised (thr=0.31)     : AUC=0.7403  F1=0.5599  Recall=0.6468
+
+    Mean Metrics:
+        accuracy: 0.7260 +/- 0.1006
+       precision: 0.7074 +/- 0.1450
+          recall: 0.3466 +/- 0.1260
+              f1: 0.4397 +/- 0.1307
+             auc: 0.7403 +/- 0.0897
+             mcc: 0.3403 +/- 0.1490
+    Best Params: {'max_depth': None, 'min_samples_leaf': 2, 'min_samples_split': 5, 'n_estimators': 300}
 
   --- XGBoost ---
+    SMOTE OFF (distress ratio: 29.12%)
+    CV: Temporal walk-forward (5 folds)
+    Fold  1: AUC=0.8661  F1@0.50=0.6316  MCC=0.5879
+    Fold  2: AUC=0.8279  F1@0.50=0.5758  MCC=0.4742
+    Fold  3: AUC=0.6109  F1@0.50=0.3736  MCC=0.2826
+    Fold  4: AUC=0.6520  F1@0.50=0.5517  MCC=0.2644
+    Fold  5: AUC=0.6156  F1@0.50=0.4043  MCC=0.1557
 
-    Mean Metrics (t=0.5):
-        accuracy: 0.9206 +/- 0.0225
-       precision: 0.8502 +/- 0.0699
-          recall: 0.8754 +/- 0.0614
-              f1: 0.8605 +/- 0.0495
-             auc: 0.9759 +/- 0.0120
-             mcc: 0.8067 +/- 0.0624
-    Optimized Threshold: 0.51
-    Mean Metrics (opt_t):
-        accuracy: 0.9170
-       precision: 0.8483
-          recall: 0.8643
-              f1: 0.8534
-             auc: 0.9759
-             mcc: 0.7977
-    Best Params: {'subsample': 0.8, 'scale_pos_weight': 1.7, 'reg_lambda': 1, 'reg_alpha': 0, 'n_estimators': 500, 'max_depth': 4, 'learning_rate': 0.03, 'colsample_bytree': 0.8}
+    --- XGBoost Summary ---
+    Default   (thr=0.50)     : AUC=0.7145  F1=0.5074  Recall=0.4345
+    Optimised (thr=0.14)     : AUC=0.7145  F1=0.5601  Recall=0.7845
+
+    Mean Metrics:
+        accuracy: 0.7297 +/- 0.0984
+       precision: 0.6570 +/- 0.1488
+          recall: 0.4345 +/- 0.1071
+              f1: 0.5074 +/- 0.1006
+             auc: 0.7145 +/- 0.1098
+             mcc: 0.3530 +/- 0.1560
+    Best Params: {'colsample_bytree': 1.0, 'learning_rate': 0.05, 'max_depth': 5, 'min_child_weight': 1, 'n_estimators': 100, 'subsample': 0.8}
 
   --- CatBoost ---
+    SMOTE OFF (distress ratio: 29.12%)
+    CV: Temporal walk-forward (5 folds)
+    Fold  1: AUC=0.8806  F1@0.50=0.6571  MCC=0.5608
+    Fold  2: AUC=0.8455  F1@0.50=0.6015  MCC=0.5049
+    Fold  3: AUC=0.6215  F1@0.50=0.3575  MCC=0.2773
+    Fold  4: AUC=0.7003  F1@0.50=0.5291  MCC=0.3371
+    Fold  5: AUC=0.6465  F1@0.50=0.4628  MCC=0.1567
 
-    Mean Metrics (t=0.5):
-        accuracy: 0.9161 +/- 0.0302
-       precision: 0.8195 +/- 0.0769
-          recall: 0.9049 +/- 0.0631
-              f1: 0.8583 +/- 0.0602
-             auc: 0.9763 +/- 0.0117
-             mcc: 0.8021 +/- 0.0768
-    Optimized Threshold: 0.55
-    Mean Metrics (opt_t):
-        accuracy: 0.9120
-       precision: 0.8271
-          recall: 0.8864
-              f1: 0.8515
-             auc: 0.9763
-             mcc: 0.7939
-    Best Params: {'learning_rate': 0.03, 'l2_leaf_reg': 3, 'iterations': 500, 'depth': 8}
+    --- CatBoost Summary ---
+    Default   (thr=0.50)     : AUC=0.7389  F1=0.5216  Recall=0.4827
+    Optimised (thr=0.30)     : AUC=0.7389  F1=0.5615  Recall=0.6704
+
+    Mean Metrics:
+        accuracy: 0.7231 +/- 0.1034
+       precision: 0.6430 +/- 0.1327
+          recall: 0.4827 +/- 0.1437
+              f1: 0.5216 +/- 0.1051
+             auc: 0.7389 +/- 0.1051
+             mcc: 0.3674 +/- 0.1481
+    Best Params: {'depth': 6, 'iterations': 200, 'learning_rate': 0.03}
 
   --- LightGBM ---
+    SMOTE OFF (distress ratio: 29.12%)
+    CV: Temporal walk-forward (5 folds)
+    Fold  1: AUC=0.8594  F1@0.50=0.6370  MCC=0.5417
+    Fold  2: AUC=0.8236  F1@0.50=0.5942  MCC=0.4883
+    Fold  3: AUC=0.6239  F1@0.50=0.3352  MCC=0.2401
+    Fold  4: AUC=0.5669  F1@0.50=0.5177  MCC=0.1599
+    Fold  5: AUC=0.6079  F1@0.50=0.3846  MCC=0.1417
 
-    Mean Metrics (t=0.5):
-        accuracy: 0.9188 +/- 0.0289
-       precision: 0.8277 +/- 0.0780
-          recall: 0.9056 +/- 0.0482
-              f1: 0.8631 +/- 0.0549
-             auc: 0.9755 +/- 0.0124
-             mcc: 0.8085 +/- 0.0703
-    Optimized Threshold: 0.53
-    Mean Metrics (opt_t):
-        accuracy: 0.9137
-       precision: 0.8214
-          recall: 0.8966
-              f1: 0.8540
-             auc: 0.9755
-             mcc: 0.7975
-    Best Params: {'subsample': 0.8, 'reg_lambda': 3, 'reg_alpha': 0.1, 'num_leaves': 63, 'n_estimators': 200, 'min_child_samples': 20, 'max_depth': 6, 'learning_rate': 0.03}
+    --- LightGBM Summary ---
+    Default   (thr=0.50)     : AUC=0.6963  F1=0.4938  Recall=0.4518
+    Optimised (thr=0.14)     : AUC=0.6963  F1=0.5138  Recall=0.7461
 
-================================================================================
-  MODEL COMPARISON TABLE
-================================================================================
-  Model                          AUC       F1      MCC   OOF_F1  OOF_MCC  OOF_t
-  ------------------------- -------- -------- -------- -------- -------- ------
-  Logistic Regression         0.9627   0.8353   0.7688   0.8438   0.7805   0.58
-  Random Forest               0.9733   0.8595   0.8042   0.8632   0.8051   0.48
-  XGBoost                     0.9759   0.8605   0.8067   0.8708   0.8160   0.38
-  CatBoost                    0.9763   0.8583   0.8021   0.8692   0.8144   0.60
-  LightGBM                    0.9755   0.8631   0.8085   0.8731   0.8199   0.60
-================================================================================
+    Mean Metrics:
+        accuracy: 0.7108 +/- 0.1062
+       precision: 0.5942 +/- 0.1128
+          recall: 0.4518 +/- 0.1445
+              f1: 0.4938 +/- 0.1168
+             auc: 0.6963 +/- 0.1205
+             mcc: 0.3143 +/- 0.1680
+    Best Params: {'learning_rate': 0.1, 'max_depth': 3, 'min_child_samples': 20, 'n_estimators': 100, 'num_leaves': 31, 'subsample': 0.8}
 
-  Best: CatBoost
-    AUC: 0.9763
-    F1:  0.8583
-    OOF Threshold: 0.60
-    OOF F1: 0.8692
-    OOF MCC: 0.8144
+==================================================
+  MODE: SMOTE
+==================================================
+
+  --- Logistic Regression ---
+    SMOTE forced ON (distress ratio: 29.12%)
+    CV: Temporal walk-forward (5 folds)
+    Fold  1: AUC=0.8555  F1@0.50=0.6235  MCC=0.5014
+    Fold  2: AUC=0.8276  F1@0.50=0.5561  MCC=0.4150
+    Fold  3: AUC=0.5876  F1@0.50=0.5130  MCC=0.2824
+    Fold  4: AUC=0.6374  F1@0.50=0.2921  MCC=0.1904
+    Fold  5: AUC=0.5988  F1@0.50=0.4583  MCC=-0.0162
+
+    --- Logistic Regression Summary ---
+    Default   (thr=0.50)     : AUC=0.7014  F1=0.4886  Recall=0.5921
+    Optimised (thr=0.35)     : AUC=0.7014  F1=0.5259  Recall=0.7541
+
+    Mean Metrics:
+        accuracy: 0.6350 +/- 0.1577
+       precision: 0.5255 +/- 0.1350
+          recall: 0.5921 +/- 0.2522
+              f1: 0.4886 +/- 0.1121
+             auc: 0.7014 +/- 0.1160
+             mcc: 0.2746 +/- 0.1805
+    Best Params: {'C': 1, 'penalty': 'l2'}
+
+  --- Random Forest ---
+    SMOTE forced ON (distress ratio: 29.12%)
+    CV: Temporal walk-forward (5 folds)
+    Fold  1: AUC=0.8698  F1@0.50=0.6452  MCC=0.5735
+    Fold  2: AUC=0.8082  F1@0.50=0.5942  MCC=0.4883
+    Fold  3: AUC=0.6403  F1@0.50=0.3315  MCC=0.2200
+    Fold  4: AUC=0.6621  F1@0.50=0.5403  MCC=0.2781
+    Fold  5: AUC=0.6318  F1@0.50=0.4746  MCC=0.1831
+
+    --- Random Forest Summary ---
+    Default   (thr=0.50)     : AUC=0.7224  F1=0.5172  Recall=0.4773
+    Optimised (thr=0.32)     : AUC=0.7224  F1=0.5485  Recall=0.7393
+
+    Mean Metrics:
+        accuracy: 0.7185 +/- 0.1057
+       precision: 0.6234 +/- 0.1207
+          recall: 0.4773 +/- 0.1341
+              f1: 0.5172 +/- 0.1088
+             auc: 0.7224 +/- 0.0977
+             mcc: 0.3486 +/- 0.1543
+    Best Params: {'max_depth': None, 'min_samples_leaf': 1, 'min_samples_split': 2, 'n_estimators': 300}
+
+  --- XGBoost ---
+    SMOTE forced ON (distress ratio: 29.12%)
+    CV: Temporal walk-forward (5 folds)
+    Fold  1: AUC=0.8697  F1@0.50=0.6870  MCC=0.6116
+    Fold  2: AUC=0.8498  F1@0.50=0.5789  MCC=0.4550
+    Fold  3: AUC=0.6022  F1@0.50=0.3830  MCC=0.2593
+    Fold  4: AUC=0.5731  F1@0.50=0.4966  MCC=0.0878
+    Fold  5: AUC=0.6219  F1@0.50=0.4417  MCC=0.1245
+
+    --- XGBoost Summary ---
+    Default   (thr=0.50)     : AUC=0.7033  F1=0.5175  Recall=0.5122
+    Optimised (thr=0.06)     : AUC=0.7033  F1=0.5525  Recall=0.8075
+
+    Mean Metrics:
+        accuracy: 0.6905 +/- 0.1272
+       precision: 0.5754 +/- 0.1469
+          recall: 0.5122 +/- 0.1315
+              f1: 0.5175 +/- 0.1066
+             auc: 0.7033 +/- 0.1288
+             mcc: 0.3076 +/- 0.1992
+    Best Params: {'colsample_bytree': 0.8, 'learning_rate': 0.1, 'max_depth': 5, 'min_child_weight': 1, 'n_estimators': 300, 'subsample': 0.8}
+
+  --- CatBoost ---
+    SMOTE forced ON (distress ratio: 29.12%)
+    CV: Temporal walk-forward (5 folds)
+    Fold  1: AUC=0.8592  F1@0.50=0.6357  MCC=0.5504
+    Fold  2: AUC=0.8238  F1@0.50=0.5781  MCC=0.4848
+    Fold  3: AUC=0.5855  F1@0.50=0.3333  MCC=0.2299
+    Fold  4: AUC=0.6301  F1@0.50=0.4413  MCC=0.2378
+    Fold  5: AUC=0.6347  F1@0.50=0.4769  MCC=0.1419
+
+    --- CatBoost Summary ---
+    Default   (thr=0.50)     : AUC=0.7067  F1=0.4931  Recall=0.4626
+    Optimised (thr=0.06)     : AUC=0.7067  F1=0.5425  Recall=0.7490
+
+    Mean Metrics:
+        accuracy: 0.7009 +/- 0.1230
+       precision: 0.6213 +/- 0.1299
+          recall: 0.4626 +/- 0.1650
+              f1: 0.4931 +/- 0.1059
+             auc: 0.7067 +/- 0.1120
+             mcc: 0.3290 +/- 0.1590
+    Best Params: {'depth': 8, 'iterations': 500, 'learning_rate': 0.1}
+
+  --- LightGBM ---
+    SMOTE forced ON (distress ratio: 29.12%)
+    CV: Temporal walk-forward (5 folds)
+    Fold  1: AUC=0.8796  F1@0.50=0.6557  MCC=0.5920
+    Fold  2: AUC=0.8496  F1@0.50=0.6014  MCC=0.4916
+    Fold  3: AUC=0.5949  F1@0.50=0.3536  MCC=0.2565
+    Fold  4: AUC=0.5237  F1@0.50=0.3514  MCC=0.0612
+    Fold  5: AUC=0.5978  F1@0.50=0.4234  MCC=0.1214
+
+    --- LightGBM Summary ---
+    Default   (thr=0.50)     : AUC=0.6891  F1=0.4771  Recall=0.4276
+    Optimised (thr=0.01)     : AUC=0.6891  F1=0.5308  Recall=0.7856
+
+    Mean Metrics:
+        accuracy: 0.7009 +/- 0.1234
+       precision: 0.6015 +/- 0.1573
+          recall: 0.4276 +/- 0.1469
+              f1: 0.4771 +/- 0.1275
+             auc: 0.6891 +/- 0.1460
+             mcc: 0.3045 +/- 0.2062
+    Best Params: {'learning_rate': 0.1, 'max_depth': 7, 'min_child_samples': 10, 'n_estimators': 300, 'num_leaves': 63, 'subsample': 0.8}
+
+==================================================
+  MODE: Stacking Ensemble (No SMOTE)
+==================================================
+    Base learners: ['CatBoost', 'LightGBM', 'XGBoost']
+    Meta-learner:  Logistic Regression
+    CV: Temporal walk-forward (5 folds)
+    SMOTE: OFF (distress ratio: 29.12%)
+    Fold  1: AUC=0.8573  F1@0.50=0.6457  MCC=0.5671
+    Fold  2: AUC=0.8363  F1@0.50=0.6122  MCC=0.5018
+    Fold  3: AUC=0.6097  F1@0.50=0.3810  MCC=0.2501
+    Fold  4: AUC=0.6622  F1@0.50=0.5654  MCC=0.2409
+    Fold  5: AUC=0.6483  F1@0.50=0.5046  MCC=0.2520
+
+    --- Stacking Ensemble Summary ---
+    Default   (thr=0.50)    : AUC=0.7228  F1=0.5418  Recall=0.5165
+    Optimised (thr=0.40)    : AUC=0.7228  F1=0.5555  Recall=0.5968
+
+=====================================================================================
+  SMOTE COMPARISON TABLE  (default thr=0.50  vs  F1-optimal threshold)
+=====================================================================================
+  Model                     Mode              AUC  F1@0.50   F1@opt Recall@opt  MCC@opt
+  ------------------------- ------------ -------- -------- -------- ---------- --------
+  Logistic Regression       No SMOTE       0.6759   0.4460   0.5027     0.8593   0.1514
+  Random Forest             No SMOTE       0.7403   0.4397   0.5599     0.6468   0.3545
+  XGBoost                   No SMOTE       0.7145   0.5074   0.5601     0.7845   0.2804
+  CatBoost                  No SMOTE       0.7389   0.5216   0.5615     0.6704   0.3473
+  LightGBM                  No SMOTE       0.6963   0.4938   0.5138     0.7461   0.2439
+  Logistic Regression       SMOTE          0.7014   0.4886   0.5259     0.7541   0.2468
+  Random Forest             SMOTE          0.7224   0.5172   0.5485     0.7393   0.3017
+  XGBoost                   SMOTE          0.7033   0.5175   0.5525     0.8075   0.2480
+  CatBoost                  SMOTE          0.7067   0.4931   0.5425     0.7490   0.2731
+  LightGBM                  SMOTE          0.6891   0.4771   0.5308     0.7856   0.2149
+  Stacking Ensemble         Stacking       0.7228   0.5418   0.5555     0.5968   0.3454
+=====================================================================================
+
+  Best: Random Forest (No SMOTE)
+    AUC:                    0.7403
+    F1  (thr=0.50):         0.4397
+    F1  (OOF thr=0.31): 0.5599
 
 [Step 6] Saving cross-validation results...
-  Saved to C:\Users\EkA\Desktop\bitirme_claude\.claude\worktrees\clever-zhukovsky\outputs\cv_results.csv
+  Saved to C:\Users\EkA\Desktop\bitirme_claude\outputs\cv_results.csv
 
-[Step 7] Retraining CatBoost on full dataset...
-  Model saved to C:\Users\EkA\Desktop\bitirme_claude\.claude\worktrees\clever-zhukovsky\outputs\financial_distress_model.pkl
+[Step 7] Best model: Random Forest (No SMOTE)
+    AUC: 0.7403
+    F1: 0.4397
 
-[Step 8] Generating visualizations...
-  [OK] CV comparison chart
+[Step 8] Retraining best model on full dataset...
+  No SMOTE (best mode: No SMOTE)
+  Model saved to C:\Users\EkA\Desktop\bitirme_claude\outputs\financial_distress_model.pkl
+  Threshold config saved to C:\Users\EkA\Desktop\bitirme_claude\outputs\threshold_config.json
+
+[Step 9] Generating visualizations...
+  [OK] CV comparison charts (No SMOTE + SMOTE)
   [OK] Performance table
   [OK] Feature importance
   [OK] Confusion matrix
-  [OK] OOF threshold analysis
-  [OK] OOF confusion matrix
 
-[Step 9] SHAP explainability analysis...
-
-  Top Feature Ranking (by SHAP):
-     1. retained_earnings_to_assets              (|SHAP| = 4.0978)
-     2. equity_to_assets                         (|SHAP| = 0.5507)
-     3. inflation_rate                           (|SHAP| = 0.3014)
-     4. working_capital_to_total_assets          (|SHAP| = 0.2798)
-     5. equity_to_short_term_liabilities         (|SHAP| = 0.2648)
-     6. unemployment_rate                        (|SHAP| = 0.2552)
-     7. credit_growth                            (|SHAP| = 0.2157)
-     8. wc_ta_x_credit                           (|SHAP| = 0.2056)
-     9. gdp_growth_lag1                          (|SHAP| = 0.1926)
-    10. log_total_assets                         (|SHAP| = 0.1653)
-
-=================================================================
-  Pipeline Complete!
-  Best Model: CatBoost
-  AUC: 0.9763 +/- 0.0117
-  F1:  0.8583 +/- 0.0602
-  MCC: 0.8021 +/- 0.0768
-  OOF Threshold: 0.60 (F1=0.8692, MCC=0.8144)
-
-  Outputs saved to: C:\Users\EkA\Desktop\bitirme_claude\.claude\worktrees\clever-zhukovsky\outputs
-=================================================================
+[Step 10] SHAP explainability analysis...
+  Computing SHAP values for Random Forest...
+  Generating SHAP global importance plot...
+  Generating SHAP beeswarm plot...
+Traceback (most recent call last):
+  File "C:\Users\EkA\Desktop\bitirme_claude\train_models.py", line 329, in <module>
+    main()
+  File "C:\Users\EkA\Desktop\bitirme_claude\train_models.py", line 293, in main
+    shap_result = run_shap_analysis(
+                  ^^^^^^^^^^^^^^^^^^
+  File "C:\Users\EkA\Desktop\bitirme_claude\src\shap_analysis.py", line 158, in run_shap_analysis
+    ranking = sorted(
+              ^^^^^^^
+ValueError: The truth value of an array with more than one element is ambiguous. Use a.any() or a.all()

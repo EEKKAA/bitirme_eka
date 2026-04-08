@@ -1,105 +1,105 @@
 {
-  "model": "CatBoost",
+  "model": "Random Forest",
   "feature_ranking": [
     {
       "rank": 1,
       "feature": "cfo_x_interest",
-      "mean_abs_shap": 1.0131559744272356
+      "mean_abs_shap": 0.06050591643480619
     },
     {
       "rank": 2,
-      "feature": "inventories_to_current_assets",
-      "mean_abs_shap": 0.8137511946486287
+      "feature": "roa_x_inflation",
+      "mean_abs_shap": 0.052282358525609876
     },
     {
       "rank": 3,
-      "feature": "log_assets_x_gdp",
-      "mean_abs_shap": 0.7674024155413757
+      "feature": "inventories_to_current_assets",
+      "mean_abs_shap": 0.04311494816040263
     },
     {
       "rank": 4,
-      "feature": "gp_ltl_x_inflation",
-      "mean_abs_shap": 0.602537166280849
+      "feature": "gross_profit_to_long_term_liabilities",
+      "mean_abs_shap": 0.03636598762797304
     },
     {
       "rank": 5,
-      "feature": "equity_to_long_term_liabilities",
-      "mean_abs_shap": 0.6000061202598223
+      "feature": "log_assets_x_gdp",
+      "mean_abs_shap": 0.03579682386106372
     },
     {
       "rank": 6,
-      "feature": "short_term_liabilities_to_assets",
-      "mean_abs_shap": 0.5907261478612194
+      "feature": "working_capital_to_total_assets",
+      "mean_abs_shap": 0.03318621561635613
     },
     {
       "rank": 7,
-      "feature": "equity_to_short_term_liabilities",
-      "mean_abs_shap": 0.4615227696454833
+      "feature": "gp_ltl_x_inflation",
+      "mean_abs_shap": 0.031215921572023967
     },
     {
       "rank": 8,
-      "feature": "asset_turnover",
-      "mean_abs_shap": 0.32655437952347266
+      "feature": "roa_x_gdp",
+      "mean_abs_shap": 0.029183160885286687
     },
     {
       "rank": 9,
-      "feature": "working_capital_to_total_assets",
-      "mean_abs_shap": 0.30211191641369484
+      "feature": "working_capital_to_net_sales",
+      "mean_abs_shap": 0.02161586748536731
     },
     {
       "rank": 10,
       "feature": "operating_income_to_assets",
-      "mean_abs_shap": 0.28336174743636194
+      "mean_abs_shap": 0.01634279520052152
     },
     {
       "rank": 11,
-      "feature": "working_capital_to_net_sales",
-      "mean_abs_shap": 0.261358943143016
+      "feature": "equity_to_long_term_liabilities",
+      "mean_abs_shap": 0.014541849795396043
     },
     {
       "rank": 12,
-      "feature": "roa_x_inflation",
-      "mean_abs_shap": 0.2542572158917424
+      "feature": "return_on_assets",
+      "mean_abs_shap": 0.011153224744197486
     },
     {
       "rank": 13,
-      "feature": "gross_profit_to_long_term_liabilities",
-      "mean_abs_shap": 0.23063278123252595
+      "feature": "equity_to_short_term_liabilities",
+      "mean_abs_shap": 0.008843208654651467
     },
     {
       "rank": 14,
-      "feature": "roa_x_gdp",
-      "mean_abs_shap": 0.22593686244401578
+      "feature": "turnover_x_gdp",
+      "mean_abs_shap": 0.008640979793487021
     },
     {
       "rank": 15,
-      "feature": "oi_ta_x_unemployment",
-      "mean_abs_shap": 0.22021773039995304
+      "feature": "asset_turnover",
+      "mean_abs_shap": 0.008306222222454529
     },
     {
       "rank": 16,
-      "feature": "wc_ta_x_credit",
-      "mean_abs_shap": 0.15673957872983046
+      "feature": "net_operating_profit_margin",
+      "mean_abs_shap": 0.008266393274346074
     },
     {
       "rank": 17,
-      "feature": "net_operating_profit_margin",
-      "mean_abs_shap": 0.1445447059401446
+      "feature": "oi_ta_x_unemployment",
+      "mean_abs_shap": 0.006039494478845316
     },
     {
       "rank": 18,
-      "feature": "return_on_assets",
-      "mean_abs_shap": 0.12145503154738403
+      "feature": "short_term_liabilities_to_assets",
+      "mean_abs_shap": 0.004569308691643406
     },
     {
       "rank": 19,
-      "feature": "turnover_x_gdp",
-      "mean_abs_shap": 0.09520234592156997
+      "feature": "margin_x_usdtry",
+      "mean_abs_shap": 0.0036966165251607177
     },
     {
       "rank": 20,
-      "feature": "margin_x_usdtry",
-      "mean_abs_shap": 0.06444303866200983
+      "feature": "wc_ta_x_credit",
+      "mean_abs_shap": 0.002674524890027679
     }
   ]
 }
